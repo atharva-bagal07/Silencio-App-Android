@@ -1,4 +1,4 @@
-package com.example.silencio.navigation
+package com.example.silencio.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -8,27 +8,33 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.silencio.ui.home.HomeScreen
+import com.example.silencio.ui.home.HomeViewModel
+import com.example.silencio.ui.meetings.MeetingsScreen
 import com.example.silencio.ui.onboarding.OnboardingScreen
 import com.example.silencio.ui.onboarding.VipContactScreen
 import com.example.silencio.ui.settings.SettingsScreen
-import com.example.silencio.ui.home.HomeViewModel
 
 sealed class Screen(val route: String) {
     object Onboarding : Screen("onboarding")
     object VipContact : Screen("vip_contact")
     object Home : Screen("home")
     object Settings : Screen("settings")
+    object Meetings : Screen("meetings")
 }
 
 @Composable
 fun NavGraph() {
     val navController = rememberNavController()
     val homeViewModel: HomeViewModel = hiltViewModel()
-    val isOnboarded by homeViewModel.isOnboarded.collectAsState(initial = false)
+    val isOnboarded by homeViewModel.isOnboarded.collectAsState(initial = null)
+
+    // Wait until we know the onboarding state
+    // null means still loading — show nothing yet
+    if (isOnboarded == null) return
 
     NavHost(
         navController = navController,
-        startDestination = if (isOnboarded) {
+        startDestination = if (isOnboarded == true) {
             Screen.Home.route
         } else {
             Screen.Onboarding.route
@@ -69,12 +75,23 @@ fun NavGraph() {
             HomeScreen(
                 onSettingsClick = {
                     navController.navigate(Screen.Settings.route)
+                },
+                onSeeAllMeetings = {
+                    navController.navigate(Screen.Meetings.route)
                 }
             )
         }
 
         composable(Screen.Settings.route) {
             SettingsScreen(
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Screen.Meetings.route) {
+            MeetingsScreen(
                 onBack = {
                     navController.popBackStack()
                 }

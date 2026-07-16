@@ -2,6 +2,7 @@ package com.example.silencio.core.calender
 
 import android.content.Context
 import android.provider.CalendarContract
+import androidx.core.content.ContextCompat
 import com.example.silencio.data.model.CalendarEvent
 import com.example.silencio.data.prefs.SilencioPrefs
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -40,8 +41,8 @@ class CalendarManager @Inject constructor(
      * null if no event is happening right now.
      */
     suspend fun getCurrentEvent(): CalendarEvent? {
-        // Guard — never query calendar without permission
         if (!hasCalendarPermission()) return null
+
         val now = System.currentTimeMillis()
         val watchedCalendarIds = prefs.watchedCalendarIds.first()
 
@@ -61,7 +62,9 @@ class CalendarManager @Inject constructor(
             now.toString()
         )
 
-        return queryEvents(selection, selectionArgs).firstOrNull()
+        val events = queryEvents(selection, selectionArgs)
+
+        return events.distinctBy { "${it.title}_${it.startTime}" }.firstOrNull()
     }
 
     /**
@@ -92,6 +95,7 @@ class CalendarManager @Inject constructor(
         )
 
         return queryEvents(selection, selectionArgs)
+            .distinctBy { "${it.title}_${it.startTime}" }
             .minByOrNull { it.startTime }
     }
 
@@ -124,7 +128,36 @@ class CalendarManager @Inject constructor(
         return calendars
     }
 
-    private suspend fun queryEvents(
+    suspend fun getUpcomingMeetings(): List<CalendarEvent> {
+        if (!hasCalendarPermission()) return emptyList()
+
+        val now = System.currentTimeMillis()
+        val lookAhead = now + (24 * 60 * 60 * 1000L)
+        val watchedCalendarIds = prefs.watchedCalendarIds.first()
+
+        val selection = buildString {
+            append("${CalendarContract.Events.DTEND} >= ? AND ")
+            append("${CalendarContract.Events.DTSTART} <= ? AND ")
+            append("${CalendarContract.Events.DELETED} = 0")
+            if (watchedCalendarIds.isNotEmpty()) {
+                append(" AND ${CalendarContract.Events.CALENDAR_ID} IN (")
+                append(watchedCalendarIds.joinToString(","))
+                append(")")
+            }
+        }
+
+        val selectionArgs = arrayOf(
+            now.toString(),
+            lookAhead.toString()
+        )
+
+        return queryEvents(selection, selectionArgs)
+            .distinctBy { "${it.title}_${it.startTime}" }  // replace distinctBy { it.id }
+            .sortedBy { it.startTime }
+            .take(10)
+    }
+
+    private fun queryEvents(
         selection: String,
         selectionArgs: Array<String>
     ): List<CalendarEvent> {
@@ -139,13 +172,13 @@ class CalendarManager @Inject constructor(
             "${CalendarContract.Events.DTSTART} ASC"
         )?.use { cursor ->
             while (cursor.moveToNext()) {
+
                 val id = cursor.getLong(PROJECTION_ID_INDEX)
                 val title = cursor.getString(PROJECTION_TITLE_INDEX)
                     ?: "Untitled Event"
                 val startTime = cursor.getLong(PROJECTION_DTSTART_INDEX)
                 val endTime = cursor.getLong(PROJECTION_DTEND_INDEX)
                 val calendarId = cursor.getLong(PROJECTION_CALENDAR_ID_INDEX)
-                android.util.Log.d("CalendarDebug", "Found event: $title at $startTime")
 
                 // Skip all-day events
                 val durationHours = (endTime - startTime) / 1000 / 60 / 60
@@ -195,10 +228,9 @@ class CalendarManager @Inject constructor(
     }
 
     private fun hasCalendarPermission(): Boolean {
-        return androidx.core.content.ContextCompat.checkSelfPermission(
+        return ContextCompat.checkSelfPermission(
             context,
             android.Manifest.permission.READ_CALENDAR
         ) == android.content.pm.PackageManager.PERMISSION_GRANTED
     }
 }
-

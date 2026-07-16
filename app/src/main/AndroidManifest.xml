@@ -10,7 +10,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 
     <application
         android:name=".SilencioApp"
@@ -24,6 +24,16 @@
         android:theme="@style/Theme.Silencio"
         tools:targetApi="31">
 
+        <service
+            android:name=".alarm.AlarmVerificationJob"
+            android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
+        <service
+            android:name=".alarm.CalendarObserverService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -35,6 +45,30 @@
             </intent-filter>
         </activity>
 
+        <receiver
+            android:name=".alarm.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".alarm.MeetingStartReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.example.silencio.MEETING_START" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".alarm.MeetingEndReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.example.silencio.MEETING_END" />
+            </intent-filter>
+        </receiver>
+
         <provider
             android:name="androidx.startup.InitializationProvider"
             android:authorities="${applicationId}.androidx-startup"
@@ -45,18 +79,6 @@
                 android:value="androidx.startup"
                 tools:node="remove" />
         </provider>
-
-        <receiver
-            android:name=".core.receiver.AlarmReceiver"
-            android:exported="false"/>
-
-        <receiver
-            android:name=".core.receiver.BootReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED"/>
-            </intent-filter>
-        </receiver>
 
     </application>
 

@@ -7,6 +7,7 @@ import com.example.silencio.data.model.VipContact
 import com.example.silencio.data.prefs.SilencioPrefs
 import android.content.Context
 import android.provider.ContactsContract
+import com.example.silencio.alarm.AlarmScheduler
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -19,7 +20,8 @@ class SilencioRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val calendarManager: CalendarManager,
     private val dndManager: DndManager,
-    private val prefs: SilencioPrefs
+    private val prefs: SilencioPrefs,
+    private val alarmScheduler: AlarmScheduler
 ) {
 
     // ─── Calendar ────────────────────────────────────────────────
@@ -64,6 +66,15 @@ class SilencioRepository @Inject constructor(
 
     suspend fun setVipContactIds(ids: Set<Long>) =
         prefs.setVipContactIds(ids)
+
+    suspend fun getUpcomingMeetings(): List<CalendarEvent> {
+        val meetings = calendarManager.getUpcomingMeetings()
+        val now = System.currentTimeMillis()
+        meetings
+            .filter { it.startTime > now }  // only schedule future events
+            .forEach { alarmScheduler.scheduleMeeting(it) }
+        return meetings
+    }
 
     // ─── Session State ───────────────────────────────────────────
 

@@ -1,13 +1,11 @@
 package com.example.silencio.ui.onboarding
 
-import android.content.Context
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.silencio.core.worker.CalendarWorker
 import com.example.silencio.data.model.VipContact
 import com.example.silencio.data.repository.SilencioRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,7 +20,6 @@ data class OnboardingUiState(
 
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
     private val repository: SilencioRepository
 ) : ViewModel() {
 
@@ -37,7 +34,7 @@ class OnboardingViewModel @Inject constructor(
     fun onCalendarPermissionGranted() {
         viewModelScope.launch {
             repository.setOnboarded(true)
-            CalendarWorker.schedule(context)
+            repository.getUpcomingMeetings()
         }
     }
 

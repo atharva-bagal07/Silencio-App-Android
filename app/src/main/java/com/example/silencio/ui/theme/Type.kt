@@ -2,15 +2,21 @@ package com.example.silencio.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.example.silencio.R
+
+val Almendra = FontFamily(
+    Font(R.font.almendra_regular, FontWeight.Normal),
+    Font(R.font.almendra_bold, FontWeight.Bold)
+)
 
 val Typography = Typography(
 
-    // Large headline — event title on home screen
     headlineLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = Almendra,
         fontWeight = FontWeight.Bold,
         fontSize = 28.sp,
         lineHeight = 34.sp,
@@ -18,9 +24,8 @@ val Typography = Typography(
         color = TextPrimary
     ),
 
-    // Medium headline — section titles
     headlineMedium = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = Almendra,
         fontWeight = FontWeight.SemiBold,
         fontSize = 22.sp,
         lineHeight = 28.sp,
@@ -28,9 +33,8 @@ val Typography = Typography(
         color = TextPrimary
     ),
 
-    // Onboarding headline
     headlineSmall = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = Almendra,
         fontWeight = FontWeight.Bold,
         fontSize = 32.sp,
         lineHeight = 40.sp,
@@ -38,9 +42,8 @@ val Typography = Typography(
         color = TextPrimary
     ),
 
-    // Body text — descriptions, subtitles
     bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = Almendra,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = 24.sp,
@@ -48,9 +51,8 @@ val Typography = Typography(
         color = TextSecondary
     ),
 
-    // Secondary body — smaller descriptions
     bodyMedium = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = Almendra,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
         lineHeight = 20.sp,
@@ -58,9 +60,8 @@ val Typography = Typography(
         color = TextSecondary
     ),
 
-    // Small labels — status pills, section headers
     labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = Almendra,
         fontWeight = FontWeight.Medium,
         fontSize = 11.sp,
         lineHeight = 16.sp,
@@ -68,9 +69,8 @@ val Typography = Typography(
         color = TextSecondary
     ),
 
-    // Medium labels — settings rows, button text
     labelMedium = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = Almendra,
         fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
         lineHeight = 20.sp,
@@ -78,9 +78,8 @@ val Typography = Typography(
         color = TextPrimary
     ),
 
-    // Large labels — primary button text
     labelLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = Almendra,
         fontWeight = FontWeight.SemiBold,
         fontSize = 16.sp,
         lineHeight = 24.sp,
@@ -88,9 +87,8 @@ val Typography = Typography(
         color = TextPrimary
     ),
 
-    // Title — wordmark, app bar
     titleMedium = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = Almendra,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = 24.sp,

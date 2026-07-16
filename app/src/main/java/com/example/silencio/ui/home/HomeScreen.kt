@@ -26,11 +26,15 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,10 +56,12 @@ import com.example.silencio.ui.theme.Surface
 import com.example.silencio.ui.theme.TextMuted
 import com.example.silencio.ui.theme.TextPrimary
 import com.example.silencio.ui.theme.TextSecondary
+import kotlinx.coroutines.delay
 
 @Composable
 fun HomeScreen(
     onSettingsClick: () -> Unit,
+    onSeeAllMeetings: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -112,7 +118,7 @@ fun HomeScreen(
                 .padding(bottom = 80.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (!uiState.hasDndPermission) {
+            if (!uiState.isLoading && !uiState.hasDndPermission) {
                 DndPermissionCard(
                     onGrantClick = {
                         val intent = Intent(
@@ -134,6 +140,16 @@ fun HomeScreen(
                     nextEventTitle = uiState.nextEvent?.title,
                     nextEventStartTime = uiState.nextEvent?.startTime
                 )
+                TextButton(
+                    onClick = onSeeAllMeetings,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                ) {
+                    Text(
+                        text = "See all meetings",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = AccentBlue
+                    )
+                }
             }
         }
     }
@@ -149,18 +165,29 @@ private fun ActiveCard(
     nextEventTitle: String?,
     nextEventStartTime: Long?
 ) {
-    val now = System.currentTimeMillis()
-    val progress = remember(now, startTime, endTime) {
-        ((now - startTime).toFloat() / (endTime - startTime).toFloat())
+    // Ticking clock — updates every second
+    var currentTime by remember { mutableStateOf(System.currentTimeMillis()) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1_000)
+            currentTime = System.currentTimeMillis()
+        }
+    }
+
+    val progress = remember(currentTime, startTime, endTime) {
+        ((currentTime - startTime).toFloat() / (endTime - startTime).toFloat())
             .coerceIn(0f, 1f)
     }
 
+    val minutesRemaining = remember(currentTime, endTime) {
+        ((endTime - currentTime) / 1000 / 60).toInt().coerceAtLeast(0)
+    }
+    val remainingText =
+        if (minutesRemaining < 1) "<1 min" else if (minutesRemaining == 1) "1 min" else "$minutesRemaining mins"
+
     val endTimeFormatted = remember(endTime) {
         android.text.format.DateFormat.format("h:mm a", endTime).toString()
-    }
-
-    val minutesRemaining = remember(now, endTime) {
-        ((endTime - now) / 1000 / 60).toInt().coerceAtLeast(0)
     }
 
     Card(
@@ -193,7 +220,7 @@ private fun ActiveCard(
 
             // Time remaining
             Text(
-                text = "Ends at $endTimeFormatted · $minutesRemaining min remaining",
+                text = "Ends at $endTimeFormatted · $remainingText remaining",
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary
             )

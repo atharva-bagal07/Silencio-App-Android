@@ -1,6 +1,8 @@
 package com.example.silencio.ui.onboarding
 
 import android.Manifest
+import android.content.Intent
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -26,11 +28,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.silencio.R
+import com.example.silencio.alarm.CalendarObserverService
 import com.example.silencio.ui.theme.AccentBlue
 import com.example.silencio.ui.theme.Background
 import com.example.silencio.ui.theme.TextMuted
@@ -44,15 +48,23 @@ fun OnboardingScreen(
 ) {
     var permissionDenied by remember { mutableStateOf(false) }
 
+    val context = LocalContext.current
+
+    val dndLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) {
+        viewModel.onCalendarPermissionGranted()
+        context.startService(Intent(context, CalendarObserverService::class.java))
+        onCalendarConnected()
+    }
+
     val calendarPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
-        val calendarGranted = permissions[Manifest.permission.READ_CALENDAR]
-            ?: false
-
+        val calendarGranted = permissions[Manifest.permission.READ_CALENDAR] ?: false
         if (calendarGranted) {
-            viewModel.onCalendarPermissionGranted()
-            onCalendarConnected()
+            val intent = Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+            dndLauncher.launch(intent)
         } else {
             permissionDenied = true
         }
@@ -69,7 +81,6 @@ fun OnboardingScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Wave icon
             Icon(
                 painter = painterResource(id = R.drawable.ic_wave),
                 contentDescription = null,
@@ -79,7 +90,6 @@ fun OnboardingScreen(
 
             Spacer(modifier = Modifier.height(48.dp))
 
-            // Headline
             Text(
                 text = "Your phone learns when to disappear.",
                 style = MaterialTheme.typography.headlineSmall,
@@ -89,7 +99,6 @@ fun OnboardingScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Body
             Text(
                 text = "Silencio reads your calendar and silences " +
                         "your phone automatically. No rules. " +
@@ -111,14 +120,12 @@ fun OnboardingScreen(
             }
         }
 
-        // Bottom section
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 48.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // CTA button
             Button(
                 onClick = {
                     calendarPermissionLauncher.launch(
@@ -141,7 +148,6 @@ fun OnboardingScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Privacy note
             Text(
                 text = "Silencio only reads event times and titles. Nothing else.",
                 style = MaterialTheme.typography.bodyMedium,

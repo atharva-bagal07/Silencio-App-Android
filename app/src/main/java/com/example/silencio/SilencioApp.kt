@@ -1,10 +1,13 @@
 package com.example.silencio
 
 import android.app.Application
+import android.content.Intent
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
-import com.example.silencio.core.worker.CalendarWorker
+import com.example.silencio.alarm.AlarmVerificationJob
+import com.example.silencio.alarm.CalendarObserverService
 import com.example.silencio.data.prefs.SilencioPrefs
+import com.example.silencio.data.repository.SilencioRepository
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -20,6 +23,8 @@ class SilencioApp : Application(), Configuration.Provider {
 
     @Inject
     lateinit var prefs: SilencioPrefs
+    @Inject
+    lateinit var repository: SilencioRepository  // ADD
 
     private val applicationScope = CoroutineScope(Dispatchers.Default)
 
@@ -31,7 +36,8 @@ class SilencioApp : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
-        scheduleWorkerIfReady()
+        scheduleAlarmsIfReady()
+        AlarmVerificationJob.schedule(this)
     }
 
     /**
@@ -39,7 +45,7 @@ class SilencioApp : Application(), Configuration.Provider {
      * onboarding. No point polling calendar if permissions
      * haven't been granted yet.
      */
-    private fun scheduleWorkerIfReady() {
+    private fun scheduleAlarmsIfReady() {
         applicationScope.launch {
             val isOnboarded = prefs.isOnboarded.first()
             val autoSilenceEnabled = prefs.autoSilenceEnabled.first()
@@ -49,8 +55,12 @@ class SilencioApp : Application(), Configuration.Provider {
             ) == android.content.pm.PackageManager.PERMISSION_GRANTED
 
             if (isOnboarded && autoSilenceEnabled && hasPermission) {
-                CalendarWorker.schedule(this@SilencioApp)
+                repository.getUpcomingMeetings()
+                startService(Intent(this@SilencioApp, CalendarObserverService::class.java))
+            } else if (isOnboarded && !hasPermission) {
+                prefs.setOnboarded(false)
             }
         }
     }
 }
+

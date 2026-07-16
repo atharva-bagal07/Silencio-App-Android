@@ -2,13 +2,9 @@ package com.example.silencio.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.silencio.core.dnd.DndManager
-import com.example.silencio.core.worker.CalendarWorker
 import com.example.silencio.data.model.CalendarEvent
 import com.example.silencio.data.repository.SilencioRepository
-import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -30,19 +26,17 @@ data class HomeUiState(
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val repository: SilencioRepository,
-    private val dndManager: DndManager
+    private val repository: SilencioRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    val isOnboarded = repository.isOnboarded
+    val isOnboarded: StateFlow<Boolean?> = repository.isOnboarded
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = false
+            started = SharingStarted.Eagerly,
+            initialValue = null
         )
 
     val autoSilenceEnabled = repository.autoSilenceEnabled
@@ -62,6 +56,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             repository.isCurrentlyActive.collect { isActive ->
                 _uiState.value = _uiState.value.copy(isActive = isActive)
+                if (isActive) refreshEvents()
             }
         }
 
@@ -115,7 +110,9 @@ class HomeViewModel @Inject constructor(
     }
 
     fun onDndPermissionGranted() {
-        CalendarWorker.schedule(context)
+        viewModelScope.launch {
+            repository.getUpcomingMeetings()
+        }
         refreshEvents()
     }
 
