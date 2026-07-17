@@ -49,7 +49,6 @@ class HomeViewModel @Inject constructor(
     init {
         observeSessionState()
         refreshEvents()
-        startPeriodicRefresh()
     }
 
     private fun observeSessionState() {
@@ -79,7 +78,10 @@ class HomeViewModel @Inject constructor(
 
     private fun refreshEvents() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            // Only show loading on first load, not on resume refreshes
+            if (_uiState.value.currentEvent == null && _uiState.value.nextEvent == null) {
+                _uiState.value = _uiState.value.copy(isLoading = true)
+            }
 
             val currentEvent = repository.getCurrentEvent()
             val nextEvent = repository.getNextEvent()
@@ -91,21 +93,6 @@ class HomeViewModel @Inject constructor(
                 hasDndPermission = hasDndPermission,
                 isLoading = false
             )
-        }
-    }
-
-    /**
-     * Refreshes event state every 60 seconds while
-     * the home screen is visible.
-     * WorkManager handles the background work —
-     * this just keeps the UI current.
-     */
-    private fun startPeriodicRefresh() {
-        viewModelScope.launch {
-            while (true) {
-                delay(60_000)
-                refreshEvents()
-            }
         }
     }
 

@@ -33,7 +33,7 @@ class CalendarManager @Inject constructor(
         private const val PROJECTION_CALENDAR_ID_INDEX = 4
 
         // How far ahead to look for upcoming events
-        private const val LOOK_AHEAD_MS = 24 * 60 * 60 * 1000L // 24 hours
+        private const val LOOK_AHEAD_MS = 48 * 60 * 60 * 1000L // 48 hours
     }
 
     /**

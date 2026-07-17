@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -30,7 +31,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.silencio.ui.theme.Background
 import com.example.silencio.ui.theme.Divider
@@ -43,7 +46,6 @@ import com.example.silencio.ui.theme.TextSecondary
 
 @Composable
 fun SettingsScreen(
-    onBack: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -52,136 +54,132 @@ fun SettingsScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Background)
-            .verticalScroll(rememberScrollState())
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // ─── Top bar ─────────────────────────────────────────────
+        // Top bar — fixed, doesn't scroll
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp),
+                .padding(horizontal = 24.dp)
+                .padding(top = 48.dp, bottom = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Back",
-                    tint = TextSecondary,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-
+            Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = "Settings",
-                style = MaterialTheme.typography.headlineMedium,
-                color = TextPrimary
+                style = MaterialTheme.typography.headlineSmall,
+                color = TextPrimary,
+                fontSize = 32.sp
             )
         }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Background)
+                .verticalScroll(rememberScrollState()) // scroll HERE
+        ) {
+            Spacer(modifier = Modifier.height(8.dp))
 
-        Spacer(modifier = Modifier.height(24.dp))
+            // ─── Calendar section ─────────────────────────────────────
+            SectionLabel(text = "CALENDAR")
 
-        // ─── Calendar section ─────────────────────────────────────
-        SectionLabel(text = "CALENDAR")
-
-        SettingsCard {
-            ToggleRow(
-                label = "Auto-silence during events",
-                checked = uiState.autoSilenceEnabled,
-                onCheckedChange = viewModel::setAutoSilenceEnabled
-            )
-
-            SettingsDivider()
-
-            ChevronRow(
-                label = "Calendars to watch",
-                subtitle = uiState.watchedCalendarNames
-                    .ifEmpty { "All calendars" },
-                onClick = { /* navigate to calendar picker */ }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // ─── VIP contacts section ─────────────────────────────────
-        SectionLabel(text = "VIP CONTACTS")
-
-        SettingsCard {
-            ChevronRow(
-                label = "Manage VIP contacts",
-                subtitle = when (uiState.vipContactCount) {
-                    0 -> "None selected"
-                    1 -> "1 contact"
-                    else -> "${uiState.vipContactCount} contacts"
-                },
-                onClick = { /* navigate to VIP contact picker */ }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // ─── Behaviour section ────────────────────────────────────
-        SectionLabel(text = "BEHAVIOUR")
-
-        SettingsCard {
-            ToggleRow(
-                label = "Vibrate instead of full silence",
-                checked = uiState.vibrateInstead,
-                onCheckedChange = viewModel::setVibrateInstead
-            )
-
-            SettingsDivider()
-
-            ToggleRow(
-                label = "Alert me 5 min before event ends",
-                checked = uiState.preMeetingAlert,
-                onCheckedChange = viewModel::setPreMeetingAlert
-            )
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // ─── About section ────────────────────────────────────────
-        SectionLabel(text = "ABOUT")
-
-        SettingsCard {
-            ChevronRow(
-                label = "How Silencio works",
-                subtitle = null,
-                onClick = { /* open explainer */ }
-            )
-
-            SettingsDivider()
-
-            ChevronRow(
-                label = "Privacy",
-                subtitle = null,
-                onClick = { /* open privacy policy */ }
-            )
-
-            SettingsDivider()
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Version",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = TextPrimary
+            SettingsCard {
+                ToggleRow(
+                    label = "Auto-silence during events",
+                    checked = uiState.autoSilenceEnabled,
+                    onCheckedChange = viewModel::setAutoSilenceEnabled
                 )
-                Text(
-                    text = "1.0.0",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextMuted
+
+                SettingsDivider()
+
+                ChevronRow(
+                    label = "Calendars to watch",
+                    subtitle = uiState.watchedCalendarNames
+                        .ifEmpty { "All calendars" },
+                    onClick = { /* navigate to calendar picker */ }
                 )
             }
-        }
 
-        Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // ─── VIP contacts section ─────────────────────────────────
+            SectionLabel(text = "VIP CONTACTS")
+
+            SettingsCard {
+                ChevronRow(
+                    label = "Manage VIP contacts",
+                    subtitle = when (uiState.vipContactCount) {
+                        0 -> "None selected"
+                        1 -> "1 contact"
+                        else -> "${uiState.vipContactCount} contacts"
+                    },
+                    onClick = { /* navigate to VIP contact picker */ }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // ─── Behaviour section ────────────────────────────────────
+            SectionLabel(text = "BEHAVIOUR")
+
+            SettingsCard {
+                ToggleRow(
+                    label = "Vibrate instead of full silence",
+                    checked = uiState.vibrateInstead,
+                    onCheckedChange = viewModel::setVibrateInstead
+                )
+
+                SettingsDivider()
+
+                ToggleRow(
+                    label = "Alert me 5 min before event ends",
+                    checked = uiState.preMeetingAlert,
+                    onCheckedChange = viewModel::setPreMeetingAlert
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // ─── About section ────────────────────────────────────────
+            SectionLabel(text = "ABOUT")
+
+            SettingsCard {
+                ChevronRow(
+                    label = "How Silencio works",
+                    subtitle = null,
+                    onClick = { /* open explainer */ }
+                )
+
+                SettingsDivider()
+
+                ChevronRow(
+                    label = "Privacy",
+                    subtitle = null,
+                    onClick = { /* open privacy policy */ }
+                )
+
+                SettingsDivider()
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Version",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = TextPrimary
+                    )
+                    Text(
+                        text = "1.0.0",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextMuted
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(48.dp))
+        }
     }
 }
 
@@ -194,7 +192,7 @@ private fun SectionLabel(text: String) {
         style = MaterialTheme.typography.labelSmall,
         color = TextSecondary,
         modifier = Modifier.padding(
-            horizontal = 24.dp,
+            horizontal = 16.dp,
             vertical = 8.dp
         )
     )
@@ -232,7 +230,8 @@ private fun ToggleRow(
             text = label,
             style = MaterialTheme.typography.labelMedium,
             color = TextPrimary,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            fontSize = 17.sp
         )
 
         Switch(
@@ -267,7 +266,8 @@ private fun ChevronRow(
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
-                color = TextPrimary
+                color = TextPrimary,
+                fontSize = 17.sp
             )
             if (subtitle != null) {
                 Spacer(modifier = Modifier.height(2.dp))
@@ -278,13 +278,6 @@ private fun ChevronRow(
                 )
             }
         }
-
-        Icon(
-            imageVector = Icons.Default.ArrowForward,
-            contentDescription = null,
-            tint = TextMuted,
-            modifier = Modifier.size(18.dp)
-        )
     }
 }
 

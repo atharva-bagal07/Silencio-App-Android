@@ -1,8 +1,12 @@
 package com.example.silencio.ui.navigation
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.Color
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -13,6 +17,7 @@ import com.example.silencio.ui.meetings.MeetingsScreen
 import com.example.silencio.ui.onboarding.OnboardingScreen
 import com.example.silencio.ui.onboarding.VipContactScreen
 import com.example.silencio.ui.settings.SettingsScreen
+import androidx.compose.ui.Modifier
 
 sealed class Screen(val route: String) {
     object Onboarding : Screen("onboarding")
@@ -26,11 +31,18 @@ sealed class Screen(val route: String) {
 fun NavGraph() {
     val navController = rememberNavController()
     val homeViewModel: HomeViewModel = hiltViewModel()
-    val isOnboarded by homeViewModel.isOnboarded.collectAsState(initial = null)
+    val isOnboarded by homeViewModel.isOnboarded.collectAsState()
 
     // Wait until we know the onboarding state
     // null means still loading — show nothing yet
-    if (isOnboarded == null) return
+    if (isOnboarded == null) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF111111))
+        )
+        return
+    }
 
     NavHost(
         navController = navController,
@@ -84,17 +96,11 @@ fun NavGraph() {
 
         composable(Screen.Settings.route) {
             SettingsScreen(
-                onBack = {
-                    navController.popBackStack()
-                }
             )
         }
 
         composable(Screen.Meetings.route) {
             MeetingsScreen(
-                onBack = {
-                    navController.popBackStack()
-                }
             )
         }
     }

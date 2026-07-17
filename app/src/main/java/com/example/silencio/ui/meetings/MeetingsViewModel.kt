@@ -45,7 +45,7 @@ class MeetingsViewModel @Inject constructor(
 
             _uiState.value = _uiState.value.copy(
                 meetings = meetings,
-                todayLabel = "Today, $todayLabel",
+                todayLabel = todayLabel,
                 isLoading = false
             )
         }
