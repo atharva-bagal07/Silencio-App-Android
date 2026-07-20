@@ -24,8 +24,6 @@ class SilencioPrefs @Inject constructor(
     companion object {
         val IS_ONBOARDED = booleanPreferencesKey("is_onboarded")
         val AUTO_SILENCE_ENABLED = booleanPreferencesKey("auto_silence_enabled")
-        val VIBRATE_INSTEAD = booleanPreferencesKey("vibrate_instead")
-        val PRE_MEETING_ALERT = booleanPreferencesKey("pre_meeting_alert")
         val VIP_CONTACT_IDS = stringPreferencesKey("vip_contact_ids")
         val WATCHED_CALENDAR_IDS = stringPreferencesKey("watched_calendar_ids")
         val ACTIVE_EVENT_ID = longPreferencesKey("active_event_id")
@@ -39,12 +37,6 @@ class SilencioPrefs @Inject constructor(
 
     val autoSilenceEnabled: Flow<Boolean> = context.dataStore.data
         .map { it[AUTO_SILENCE_ENABLED] ?: true }
-
-    val vibrateInstead: Flow<Boolean> = context.dataStore.data
-        .map { it[VIBRATE_INSTEAD] ?: false }
-
-    val preMeetingAlert: Flow<Boolean> = context.dataStore.data
-        .map { it[PRE_MEETING_ALERT] ?: true }
 
     val vipContactIds: Flow<Set<Long>> = context.dataStore.data
         .map { prefs ->
@@ -92,14 +84,6 @@ class SilencioPrefs @Inject constructor(
 
     suspend fun setAutoSilenceEnabled(value: Boolean) {
         context.dataStore.edit { it[AUTO_SILENCE_ENABLED] = value }
-    }
-
-    suspend fun setVibrateInstead(value: Boolean) {
-        context.dataStore.edit { it[VIBRATE_INSTEAD] = value }
-    }
-
-    suspend fun setPreMeetingAlert(value: Boolean) {
-        context.dataStore.edit { it[PRE_MEETING_ALERT] = value }
     }
 
     suspend fun setVipContactIds(ids: Set<Long>) {

@@ -38,15 +38,11 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             combine(
                 repository.autoSilenceEnabled,
-                repository.vibrateInstead,
-                repository.preMeetingAlert,
                 repository.vipContactIds,
                 repository.watchedCalendarIds
-            ) { autoSilence, vibrate, preAlert, vipIds, calendarIds ->
+            ) { autoSilence, vipIds, calendarIds ->
                 SettingsUiState(
                     autoSilenceEnabled = autoSilence,
-                    vibrateInstead = vibrate,
-                    preMeetingAlert = preAlert,
                     vipContactCount = vipIds.size,
                     watchedCalendarIds = calendarIds,
                     watchedCalendarNames = buildCalendarNames(calendarIds),
@@ -79,18 +75,6 @@ class SettingsViewModel @Inject constructor(
     fun setAutoSilenceEnabled(enabled: Boolean) {
         viewModelScope.launch {
             repository.setAutoSilenceEnabled(enabled)
-        }
-    }
-
-    fun setVibrateInstead(vibrate: Boolean) {
-        viewModelScope.launch {
-            repository.setVibrateInstead(vibrate)
-        }
-    }
-
-    fun setPreMeetingAlert(enabled: Boolean) {
-        viewModelScope.launch {
-            repository.setPreMeetingAlert(enabled)
         }
     }
 

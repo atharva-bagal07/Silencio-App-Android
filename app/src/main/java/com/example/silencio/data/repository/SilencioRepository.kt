@@ -41,10 +41,6 @@ class SilencioRepository @Inject constructor(
 
     val autoSilenceEnabled: Flow<Boolean> = prefs.autoSilenceEnabled
 
-    val vibrateInstead: Flow<Boolean> = prefs.vibrateInstead
-
-    val preMeetingAlert: Flow<Boolean> = prefs.preMeetingAlert
-
     val watchedCalendarIds: Flow<Set<Long>> = prefs.watchedCalendarIds
 
     val vipContactIds: Flow<Set<Long>> = prefs.vipContactIds
@@ -54,12 +50,6 @@ class SilencioRepository @Inject constructor(
 
     suspend fun setAutoSilenceEnabled(value: Boolean) =
         prefs.setAutoSilenceEnabled(value)
-
-    suspend fun setVibrateInstead(value: Boolean) =
-        prefs.setVibrateInstead(value)
-
-    suspend fun setPreMeetingAlert(value: Boolean) =
-        prefs.setPreMeetingAlert(value)
 
     suspend fun setWatchedCalendarIds(ids: Set<Long>) =
         prefs.setWatchedCalendarIds(ids)

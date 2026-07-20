@@ -15,7 +15,9 @@ import javax.inject.Inject
 data class OnboardingUiState(
     val contacts: List<VipContact> = emptyList(),
     val selectedContactIds: Set<Long> = emptySet(),
-    val isLoadingContacts: Boolean = false
+    val isLoadingContacts: Boolean = false,
+    val availableCalendars: List<Pair<Long, String>> = emptyList(),
+    val selectedCalendarIds: Set<Long> = emptySet()
 )
 
 @HiltViewModel
@@ -33,7 +35,6 @@ class OnboardingViewModel @Inject constructor(
      */
     fun onCalendarPermissionGranted() {
         viewModelScope.launch {
-            repository.setOnboarded(true)
             repository.getUpcomingMeetings()
         }
     }
@@ -60,6 +61,27 @@ class OnboardingViewModel @Inject constructor(
         }
     }
 
+    fun loadCalendars() {
+        viewModelScope.launch {
+            val calendars = repository.getAvailableCalendars()
+            _uiState.value = _uiState.value.copy(
+                availableCalendars = calendars
+            )
+        }
+    }
+
+    fun toggleCalendar(id: Long) {
+        val current = _uiState.value.selectedCalendarIds.toMutableSet()
+        if (current.contains(id)) current.remove(id) else current.add(id)
+        _uiState.value = _uiState.value.copy(selectedCalendarIds = current)
+    }
+
+    fun saveCalendars() {
+        viewModelScope.launch {
+            repository.setWatchedCalendarIds(_uiState.value.selectedCalendarIds)
+        }
+    }
+
     /**
      * Toggles a contact in/out of the VIP selection.
      */
@@ -71,6 +93,12 @@ class OnboardingViewModel @Inject constructor(
             current.add(contactId)
         }
         _uiState.value = _uiState.value.copy(selectedContactIds = current)
+    }
+
+    fun onDndGranted() {
+        viewModelScope.launch {
+            repository.setOnboarded(true)
+        }
     }
 
     /**
