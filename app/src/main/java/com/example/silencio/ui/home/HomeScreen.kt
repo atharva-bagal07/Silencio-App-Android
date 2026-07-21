@@ -72,6 +72,14 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    val isOnboarded by viewModel.isOnboarded.collectAsState()
+
+    LaunchedEffect(Unit) {
+        if (isOnboarded == false) {
+            viewModel.completeOnboarding()
+        }
+    }
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 

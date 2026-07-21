@@ -23,8 +23,6 @@ class SilencioPrefs @Inject constructor(
 
     companion object {
         val IS_ONBOARDED = booleanPreferencesKey("is_onboarded")
-        val AUTO_SILENCE_ENABLED = booleanPreferencesKey("auto_silence_enabled")
-        val VIP_CONTACT_IDS = stringPreferencesKey("vip_contact_ids")
         val WATCHED_CALENDAR_IDS = stringPreferencesKey("watched_calendar_ids")
         val ACTIVE_EVENT_ID = longPreferencesKey("active_event_id")
         val SILENCE_START_TIME = longPreferencesKey("silence_start_time")
@@ -35,18 +33,7 @@ class SilencioPrefs @Inject constructor(
     val isOnboarded: Flow<Boolean> = context.dataStore.data
         .map { it[IS_ONBOARDED] ?: false }
 
-    val autoSilenceEnabled: Flow<Boolean> = context.dataStore.data
-        .map { it[AUTO_SILENCE_ENABLED] ?: true }
 
-    val vipContactIds: Flow<Set<Long>> = context.dataStore.data
-        .map { prefs ->
-            prefs[VIP_CONTACT_IDS]
-                ?.split(",")
-                ?.filter { it.isNotBlank() }
-                ?.map { it.toLong() }
-                ?.toSet()
-                ?: emptySet()
-        }
 
     val watchedCalendarIds: Flow<Set<Long>> = context.dataStore.data
         .map { prefs ->
@@ -71,27 +58,9 @@ class SilencioPrefs @Inject constructor(
     val notificationsHeldCount: Flow<Long> = context.dataStore.data
         .map { it[NOTIFICATIONS_HELD_COUNT] ?: 0L }
 
-    val silenceAllEvents: Flow<Boolean> = context.dataStore.data
-        .map { it[SILENCE_ALL_EVENTS] ?: false }
-
-    suspend fun setSilenceAllEvents(value: Boolean) {
-        context.dataStore.edit { it[SILENCE_ALL_EVENTS] = value }
-    }
-
     suspend fun setOnboarded(value: Boolean) {
         context.dataStore.edit { it[IS_ONBOARDED] = value }
     }
-
-    suspend fun setAutoSilenceEnabled(value: Boolean) {
-        context.dataStore.edit { it[AUTO_SILENCE_ENABLED] = value }
-    }
-
-    suspend fun setVipContactIds(ids: Set<Long>) {
-        context.dataStore.edit {
-            it[VIP_CONTACT_IDS] = ids.joinToString(",")
-        }
-    }
-
     suspend fun setWatchedCalendarIds(ids: Set<Long>) {
         context.dataStore.edit {
             it[WATCHED_CALENDAR_IDS] = ids.joinToString(",")

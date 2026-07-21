@@ -36,11 +36,15 @@ class MeetingStartReceiver : BroadcastReceiver() {
         context.stopService(Intent(context, CalendarObserverService::class.java))
         showStartNotification(context, eventTitle, eventEnd)
 
-        // ADD — update prefs so home screen shows active state
+        val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
-            prefs.setActiveEventId(eventId)
-            prefs.setSilenceStartTime(eventStart)
-            prefs.resetNotificationsHeld()
+            try {
+                prefs.setActiveEventId(eventId)
+                prefs.setSilenceStartTime(eventStart)
+                prefs.resetNotificationsHeld()
+            } finally {
+                pendingResult.finish()
+            }
         }
     }
 

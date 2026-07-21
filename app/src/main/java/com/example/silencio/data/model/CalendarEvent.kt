@@ -9,7 +9,7 @@ data class CalendarEvent(
 ) {
     fun isHappeningNow(): Boolean {
         val now = System.currentTimeMillis()
-        return now >= startTime && now <= endTime
+        return now in startTime..endTime
     }
 
     fun durationMinutes(): Int {

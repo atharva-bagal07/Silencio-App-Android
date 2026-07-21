@@ -3,7 +3,6 @@ package com.example.silencio.ui.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.silencio.data.model.VipContact
 import com.example.silencio.data.repository.SilencioRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,11 +10,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlinx.coroutines.delay
 
 data class OnboardingUiState(
-    val contacts: List<VipContact> = emptyList(),
-    val selectedContactIds: Set<Long> = emptySet(),
-    val isLoadingContacts: Boolean = false,
     val availableCalendars: List<Pair<Long, String>> = emptyList(),
     val selectedCalendarIds: Set<Long> = emptySet()
 )
@@ -39,30 +36,15 @@ class OnboardingViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Loads device contacts for VIP selection screen.
-     * Called when VIP contact screen becomes visible.
-     */
-    fun loadContacts() {
+    fun completeOnboarding() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoadingContacts = true)
-
-            val contacts = repository.getDeviceContacts()
-
-            // Pre-select any previously saved VIP contacts
-            val savedIds = repository.vipContactIds
-            savedIds.collect { ids ->
-                _uiState.value = _uiState.value.copy(
-                    contacts = contacts,
-                    selectedContactIds = ids,
-                    isLoadingContacts = false
-                )
-            }
+            repository.setOnboarded(true)
         }
     }
 
     fun loadCalendars() {
         viewModelScope.launch {
+            delay(300)
             val calendars = repository.getAvailableCalendars()
             _uiState.value = _uiState.value.copy(
                 availableCalendars = calendars
@@ -79,36 +61,6 @@ class OnboardingViewModel @Inject constructor(
     fun saveCalendars() {
         viewModelScope.launch {
             repository.setWatchedCalendarIds(_uiState.value.selectedCalendarIds)
-        }
-    }
-
-    /**
-     * Toggles a contact in/out of the VIP selection.
-     */
-    fun toggleContact(contactId: Long) {
-        val current = _uiState.value.selectedContactIds.toMutableSet()
-        if (current.contains(contactId)) {
-            current.remove(contactId)
-        } else {
-            current.add(contactId)
-        }
-        _uiState.value = _uiState.value.copy(selectedContactIds = current)
-    }
-
-    fun onDndGranted() {
-        viewModelScope.launch {
-            repository.setOnboarded(true)
-        }
-    }
-
-    /**
-     * Saves selected VIP contacts and completes onboarding.
-     */
-    fun saveVipContacts() {
-        viewModelScope.launch {
-            repository.setVipContactIds(
-                _uiState.value.selectedContactIds
-            )
         }
     }
 }

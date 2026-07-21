@@ -1,11 +1,13 @@
 package com.example.silencio.ui.navigation
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
@@ -15,7 +17,6 @@ import com.example.silencio.ui.home.HomeScreen
 import com.example.silencio.ui.home.HomeViewModel
 import com.example.silencio.ui.meetings.MeetingsScreen
 import com.example.silencio.ui.onboarding.OnboardingScreen
-import com.example.silencio.ui.onboarding.VipContactScreen
 import com.example.silencio.ui.settings.SettingsScreen
 import androidx.compose.ui.Modifier
 
@@ -32,6 +33,8 @@ fun NavGraph() {
     val navController = rememberNavController()
     val homeViewModel: HomeViewModel = hiltViewModel()
     val isOnboarded by homeViewModel.isOnboarded.collectAsState()
+    Log.d("NavGraph", "isOnboarded=$isOnboarded")
+
 
     // Wait until we know the onboarding state
     // null means still loading — show nothing yet
@@ -46,36 +49,15 @@ fun NavGraph() {
 
     NavHost(
         navController = navController,
-        startDestination = if (isOnboarded == true) {
-            Screen.Home.route
-        } else {
-            Screen.Onboarding.route
+        startDestination = remember {
+            if (isOnboarded == true) Screen.Home.route else Screen.Onboarding.route
         }
     ) {
         composable(Screen.Onboarding.route) {
             OnboardingScreen(
                 onCalendarConnected = {
-                    navController.navigate(Screen.VipContact.route) {
+                    navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Onboarding.route) {
-                            inclusive = true
-                        }
-                    }
-                }
-            )
-        }
-
-        composable(Screen.VipContact.route) {
-            VipContactScreen(
-                onDone = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.VipContact.route) {
-                            inclusive = true
-                        }
-                    }
-                },
-                onSkip = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.VipContact.route) {
                             inclusive = true
                         }
                     }

@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.silencio.data.model.CalendarEvent
 import com.example.silencio.data.repository.SilencioRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -38,15 +37,8 @@ class HomeViewModel @Inject constructor(
             started = SharingStarted.Eagerly,
             initialValue = null
         )
-
-    val autoSilenceEnabled = repository.autoSilenceEnabled
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = true
-        )
-
     init {
+        _uiState.value = _uiState.value.copy(isLoading = true)
         observeSessionState()
         refreshEvents()
     }
@@ -76,13 +68,14 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun completeOnboarding() {
+        viewModelScope.launch {
+            repository.setOnboarded(true)
+        }
+    }
+
     private fun refreshEvents() {
         viewModelScope.launch {
-            // Only show loading on first load, not on resume refreshes
-            if (_uiState.value.currentEvent == null && _uiState.value.nextEvent == null) {
-                _uiState.value = _uiState.value.copy(isLoading = true)
-            }
-
             val currentEvent = repository.getCurrentEvent()
             val nextEvent = repository.getNextEvent()
             val hasDndPermission = repository.hasDndPermission()

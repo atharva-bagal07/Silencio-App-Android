@@ -48,13 +48,12 @@ class SilencioApp : Application(), Configuration.Provider {
     private fun scheduleAlarmsIfReady() {
         applicationScope.launch {
             val isOnboarded = prefs.isOnboarded.first()
-            val autoSilenceEnabled = prefs.autoSilenceEnabled.first()
             val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(
                 this@SilencioApp,
                 android.Manifest.permission.READ_CALENDAR
             ) == android.content.pm.PackageManager.PERMISSION_GRANTED
 
-            if (isOnboarded && autoSilenceEnabled && hasPermission) {
+            if (isOnboarded && hasPermission) {
                 repository.getUpcomingMeetings()
                 startService(Intent(this@SilencioApp, CalendarObserverService::class.java))
             } else if (isOnboarded && !hasPermission) {

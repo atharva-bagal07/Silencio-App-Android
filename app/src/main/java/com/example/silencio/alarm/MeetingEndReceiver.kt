@@ -13,6 +13,7 @@ import com.example.silencio.data.prefs.SilencioPrefs
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -33,12 +34,18 @@ class MeetingEndReceiver : BroadcastReceiver() {
         disableDnd(context)
         dismissOngoingNotification(context)
         context.startService(Intent(context, CalendarObserverService::class.java))
-        showSummaryNotification(context, eventTitle, eventStart, eventEnd)
 
+        val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
-            prefs.setActiveEventId(null)
-            prefs.setSilenceStartTime(null)
-            prefs.resetNotificationsHeld()
+            try {
+                val count = prefs.notificationsHeldCount.first()
+                showSummaryNotification(context, eventTitle, eventStart, eventEnd, count)
+                prefs.setActiveEventId(null)
+                prefs.setSilenceStartTime(null)
+                prefs.resetNotificationsHeld()
+            } finally {
+                pendingResult.finish()
+            }
         }
     }
 
@@ -62,7 +69,8 @@ class MeetingEndReceiver : BroadcastReceiver() {
         context: Context,
         title: String,
         startTime: Long,
-        endTime: Long
+        endTime: Long,
+        notificationsHeld: Long
     ) {
         val nm = context.getSystemService(NotificationManager::class.java)
 
@@ -80,10 +88,16 @@ class MeetingEndReceiver : BroadcastReceiver() {
             else -> "${durationMinutes / 60}h ${durationMinutes % 60}m silent"
         }
 
+        val notifText = if (notificationsHeld > 0) {
+            "$durationText · $notificationsHeld notification${if (notificationsHeld > 1) "s" else ""} held · $title"
+        } else {
+            "$durationText · $title"
+        }
+
         val notification = NotificationCompat.Builder(context, MeetingStartReceiver.CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_wave)
-            .setContentTitle("Meeting protected")
-            .setContentText("$durationText · $title")
+            .setContentTitle("Meeting ended")
+            .setContentText(notifText)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
             .build()

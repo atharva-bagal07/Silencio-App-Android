@@ -3,6 +3,7 @@ package com.example.silencio.ui.onboarding
 import android.Manifest
 import android.content.Intent
 import android.provider.Settings
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
@@ -75,7 +76,7 @@ fun OnboardingScreen(
     val dndLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) {
-        viewModel.onDndGranted()
+        viewModel.completeOnboarding()
         context.startService(Intent(context, CalendarObserverService::class.java))
         onCalendarConnected()
     }
@@ -121,6 +122,13 @@ fun OnboardingScreen(
                 onToggle = viewModel::toggleCalendar,
                 onConfirm = {
                     viewModel.saveCalendars()
+                    Log.d("Onboarding", "moving to step 2")
+                    step = 2
+                }
+            )
+
+            2 -> DndExplanationStep(
+                onContinue = {
                     val intent = Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
                     dndLauncher.launch(intent)
                 }
@@ -331,6 +339,59 @@ private fun CalendarPickerStep(
                         color = if (selectedIds.isNotEmpty()) TextPrimary else TextSecondary
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DndExplanationStep(
+    onContinue: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Background)
+            .padding(horizontal = 32.dp)
+    ) {
+        Column(
+            modifier = Modifier.align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "One last step.",
+                style = MaterialTheme.typography.headlineSmall,
+                color = TextPrimary,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Silencio needs Do Not Disturb access to silence your phone during meetings. You'll be taken to your phone's settings — just tap Allow.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = TextSecondary,
+                textAlign = TextAlign.Center
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 48.dp)
+        ) {
+            Button(
+                onClick = onContinue,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = "Allow access",
+                    style = MaterialTheme.typography.labelLarge
+                )
             }
         }
     }

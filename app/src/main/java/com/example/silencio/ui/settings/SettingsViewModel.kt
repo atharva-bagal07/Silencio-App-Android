@@ -1,5 +1,6 @@
 package com.example.silencio.ui.settings
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.silencio.data.repository.SilencioRepository
@@ -12,10 +13,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class SettingsUiState(
-    val autoSilenceEnabled: Boolean = true,
-    val vibrateInstead: Boolean = false,
     val preMeetingAlert: Boolean = true,
-    val vipContactCount: Int = 0,
     val watchedCalendarNames: String = "",
     val availableCalendars: List<Pair<Long, String>> = emptyList(),
     val watchedCalendarIds: Set<Long> = emptySet()
@@ -29,6 +27,8 @@ class SettingsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
+    private val _availableCalendars = MutableStateFlow<List<Pair<Long, String>>>(emptyList())
+
     init {
         observePreferences()
         loadCalendars()
@@ -37,16 +37,16 @@ class SettingsViewModel @Inject constructor(
     private fun observePreferences() {
         viewModelScope.launch {
             combine(
-                repository.autoSilenceEnabled,
-                repository.vipContactIds,
-                repository.watchedCalendarIds
-            ) { autoSilence, vipIds, calendarIds ->
+                repository.watchedCalendarIds,
+                _availableCalendars
+            ) { calendarIds, calendars ->
                 SettingsUiState(
-                    autoSilenceEnabled = autoSilence,
-                    vipContactCount = vipIds.size,
                     watchedCalendarIds = calendarIds,
-                    watchedCalendarNames = buildCalendarNames(calendarIds),
-                    availableCalendars = _uiState.value.availableCalendars
+                    watchedCalendarNames = calendars
+                        .filter { it.first in calendarIds }
+                        .joinToString(", ") { it.second }
+                        .ifEmpty { "" },
+                    availableCalendars = calendars
                 )
             }.collect { state ->
                 _uiState.value = state
@@ -56,41 +56,14 @@ class SettingsViewModel @Inject constructor(
 
     private fun loadCalendars() {
         viewModelScope.launch {
-            val calendars = repository.getAvailableCalendars()
-            _uiState.value = _uiState.value.copy(
-                availableCalendars = calendars
-            )
-        }
-    }
-
-    private fun buildCalendarNames(ids: Set<Long>): String {
-        if (ids.isEmpty()) return ""
-        val available = _uiState.value.availableCalendars
-        return available
-            .filter { it.first in ids }
-            .joinToString(", ") { it.second }
-            .ifEmpty { "" }
-    }
-
-    fun setAutoSilenceEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            repository.setAutoSilenceEnabled(enabled)
+            _availableCalendars.value = repository.getAvailableCalendars()
         }
     }
 
     fun setWatchedCalendarIds(ids: Set<Long>) {
         viewModelScope.launch {
+            Log.d("Settings", "Saving calendar ids: $ids")
             repository.setWatchedCalendarIds(ids)
-            _uiState.value = _uiState.value.copy(
-                watchedCalendarIds = ids,
-                watchedCalendarNames = buildCalendarNames(ids)
-            )
-        }
-    }
-
-    fun setVipContactIds(ids: Set<Long>) {
-        viewModelScope.launch {
-            repository.setVipContactIds(ids)
         }
     }
 }

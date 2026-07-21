@@ -108,7 +108,8 @@ class CalendarManager @Inject constructor(
 
         val projection = arrayOf(
             CalendarContract.Calendars._ID,
-            CalendarContract.Calendars.CALENDAR_DISPLAY_NAME
+            CalendarContract.Calendars.CALENDAR_DISPLAY_NAME,
+            CalendarContract.Calendars.OWNER_ACCOUNT
         )
 
         context.contentResolver.query(
@@ -121,7 +122,10 @@ class CalendarManager @Inject constructor(
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(0)
                 val name = cursor.getString(1) ?: "Unnamed Calendar"
-                calendars.add(Pair(id, name))
+                val owner = cursor.getString(2) ?: ""
+                if (owner.endsWith("@gmail.com")) {
+                    calendars.add(Pair(id, name))
+                }
             }
         }
 
