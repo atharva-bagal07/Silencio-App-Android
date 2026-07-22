@@ -27,13 +27,15 @@ class SilencioPrefs @Inject constructor(
         val ACTIVE_EVENT_ID = longPreferencesKey("active_event_id")
         val SILENCE_START_TIME = longPreferencesKey("silence_start_time")
         val NOTIFICATIONS_HELD_COUNT = longPreferencesKey("notifications_held_count")
-        val SILENCE_ALL_EVENTS = booleanPreferencesKey("silence_all_events")
+        val IS_PREMIUM = booleanPreferencesKey("is_premium")
+        val CUSTOM_REPLY_MESSAGE = stringPreferencesKey("custom_reply_message")
     }
 
     val isOnboarded: Flow<Boolean> = context.dataStore.data
         .map { it[IS_ONBOARDED] ?: false }
 
-
+    val isPremium: Flow<Boolean> = context.dataStore.data
+        .map { it[IS_PREMIUM] ?: true } // true for testing
 
     val watchedCalendarIds: Flow<Set<Long>> = context.dataStore.data
         .map { prefs ->
@@ -58,9 +60,19 @@ class SilencioPrefs @Inject constructor(
     val notificationsHeldCount: Flow<Long> = context.dataStore.data
         .map { it[NOTIFICATIONS_HELD_COUNT] ?: 0L }
 
+    val customReplyMessage: Flow<String> = context.dataStore.data
+        .map {
+            it[CUSTOM_REPLY_MESSAGE] ?: "I'm in a meeting right now. I'll get back to you soon."
+        }
+
+    suspend fun setCustomReplyMessage(message: String) {
+        context.dataStore.edit { it[CUSTOM_REPLY_MESSAGE] = message }
+    }
+
     suspend fun setOnboarded(value: Boolean) {
         context.dataStore.edit { it[IS_ONBOARDED] = value }
     }
+
     suspend fun setWatchedCalendarIds(ids: Set<Long>) {
         context.dataStore.edit {
             it[WATCHED_CALENDAR_IDS] = ids.joinToString(",")
