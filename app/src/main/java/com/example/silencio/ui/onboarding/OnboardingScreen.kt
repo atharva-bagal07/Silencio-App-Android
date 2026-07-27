@@ -2,11 +2,17 @@ package com.example.silencio.ui.onboarding
 
 import android.Manifest
 import android.content.Intent
+import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -20,6 +26,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -37,6 +44,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -45,6 +53,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -63,6 +73,7 @@ import com.example.silencio.ui.theme.TextMuted
 import com.example.silencio.ui.theme.TextPrimary
 import com.example.silencio.ui.theme.TextSecondary
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun OnboardingScreen(
     onCalendarConnected: () -> Unit,
@@ -77,7 +88,7 @@ fun OnboardingScreen(
         contract = ActivityResultContracts.StartActivityForResult()
     ) {
         viewModel.completeOnboarding()
-        context.startService(Intent(context, CalendarObserverService::class.java))
+        context.startForegroundService(Intent(context, CalendarObserverService::class.java))
         onCalendarConnected()
     }
 
@@ -142,6 +153,46 @@ private fun WelcomeStep(
     permissionDenied: Boolean,
     onConnect: () -> Unit
 ) {
+    var visible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        visible = true
+    }
+
+    // Logo animation — scale + fade with spring
+    val logoScale by animateFloatAsState(
+        targetValue = if (visible) 1f else 0.3f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "logoScale"
+    )
+    val logoAlpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(500),
+        label = "logoAlpha"
+    )
+
+    // Content animation — fade + slide up with delay
+    val contentAlpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(500, delayMillis = 600),
+        label = "contentAlpha"
+    )
+    val contentOffset by animateFloatAsState(
+        targetValue = if (visible) 0f else 40f,
+        animationSpec = tween(500, delayMillis = 600),
+        label = "contentOffset"
+    )
+
+    // Button animation — fade in last
+    val buttonAlpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(400, delayMillis = 900),
+        label = "buttonAlpha"
+    )
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -157,16 +208,22 @@ private fun WelcomeStep(
                 painter = painterResource(id = R.drawable.ic_wave),
                 contentDescription = null,
                 tint = TextPrimary,
-                modifier = Modifier.size(64.dp)
+                modifier = Modifier
+                    .size(128.dp)
+                    .scale(logoScale)
+                    .alpha(logoAlpha)
             )
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             Text(
                 text = "Your phone learns when to disappear.",
                 style = MaterialTheme.typography.headlineSmall,
                 color = TextPrimary,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .alpha(contentAlpha)
+                    .offset(y = contentOffset.dp)
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -177,7 +234,11 @@ private fun WelcomeStep(
                         "No buttons. Nothing to remember.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = TextSecondary,
-                textAlign = TextAlign.Center
+                fontSize = 18.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .alpha(contentAlpha)
+                    .offset(y = contentOffset.dp)
             )
 
             if (permissionDenied) {
@@ -185,9 +246,11 @@ private fun WelcomeStep(
                 Text(
                     text = "Calendar access is required for Silencio to work. " +
                             "Please allow it to continue.",
+                    fontSize = 16.sp,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.alpha(contentAlpha)
                 )
             }
         }
@@ -195,7 +258,8 @@ private fun WelcomeStep(
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 48.dp),
+                .padding(bottom = 48.dp)
+                .alpha(buttonAlpha),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Button(
@@ -208,7 +272,8 @@ private fun WelcomeStep(
             ) {
                 Text(
                     text = "Connect Google Calendar",
-                    style = MaterialTheme.typography.labelLarge
+                    style = MaterialTheme.typography.labelLarge,
+                    fontSize = 17.sp,
                 )
             }
 
@@ -232,6 +297,30 @@ private fun CalendarPickerStep(
     onToggle: (Long) -> Unit,
     onConfirm: () -> Unit
 ) {
+    var visible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        visible = true
+    }
+
+    // Content animation — fade + slide up with delay
+    val contentAlpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(500, delayMillis = 250),
+        label = "contentAlpha"
+    )
+    val contentOffset by animateFloatAsState(
+        targetValue = if (visible) 0f else 40f,
+        animationSpec = tween(500, delayMillis = 300),
+        label = "contentOffset"
+    )
+
+    // Button animation — fade in last
+    val buttonAlpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(400, delayMillis = 600),
+        label = "buttonAlpha"
+    )
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -263,7 +352,10 @@ private fun CalendarPickerStep(
                 Text(
                     text = "Which calendars should Silencio watch?",
                     style = MaterialTheme.typography.headlineSmall,
-                    color = TextPrimary
+                    color = TextPrimary,
+                    modifier = Modifier
+                        .alpha(contentAlpha)
+                        .offset(y = contentOffset.dp)
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -271,7 +363,11 @@ private fun CalendarPickerStep(
                 Text(
                     text = "Only events from these calendars will trigger silence.",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = TextSecondary
+                    color = TextSecondary,
+                    fontSize = 18.sp,
+                    modifier = Modifier
+                        .alpha(contentAlpha)
+                        .offset(y = contentOffset.dp)
                 )
 
                 Spacer(modifier = Modifier.height(32.dp))
@@ -280,6 +376,8 @@ private fun CalendarPickerStep(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(Surface, RoundedCornerShape(12.dp))
+                        .alpha(contentAlpha)
+                        .offset(y = contentOffset.dp)
                 ) {
                     calendars.forEachIndexed { index, (id, name) ->
                         Row(
@@ -319,7 +417,9 @@ private fun CalendarPickerStep(
 
             // Done button pinned to bottom
             Column(
-                modifier = Modifier.padding(horizontal = 32.dp, vertical = 32.dp)
+                modifier = Modifier
+                    .padding(horizontal = 32.dp, vertical = 32.dp)
+                    .alpha(buttonAlpha)
             ) {
                 Button(
                     onClick = onConfirm,
@@ -336,7 +436,8 @@ private fun CalendarPickerStep(
                     Text(
                         text = "Done",
                         style = MaterialTheme.typography.labelLarge,
-                        color = if (selectedIds.isNotEmpty()) TextPrimary else TextSecondary
+                        color = if (selectedIds.isNotEmpty()) TextPrimary else TextSecondary,
+                        fontSize = 17.sp,
                     )
                 }
             }
@@ -362,16 +463,18 @@ private fun DndExplanationStep(
                 text = "One last step.",
                 style = MaterialTheme.typography.headlineSmall,
                 color = TextPrimary,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                fontSize = 42.sp
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Silencio needs Do Not Disturb access to silence your phone during meetings. You'll be taken to your phone's settings — just tap Allow.",
+                text = "Silencio needs Do Not Disturb access to silence your phone during meetings. You'll be taken to your phone's settings, just tap Allow.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = TextSecondary,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                fontSize = 20.sp
             )
         }
 
@@ -390,7 +493,8 @@ private fun DndExplanationStep(
             ) {
                 Text(
                     text = "Allow access",
-                    style = MaterialTheme.typography.labelLarge
+                    style = MaterialTheme.typography.labelLarge,
+                    fontSize = 18.sp
                 )
             }
         }

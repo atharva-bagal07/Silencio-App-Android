@@ -15,6 +15,8 @@ val TextMuted = Color(0xFF9AA0A6)      // was 0xFF888E94
 // ─── Accent ──────────────────────────────────────────────────────
 val AccentBlue = Color(0xFF1A73E8)
 val AccentBlueDim = Color(0xFF1A3A6E)
+val PremiumGold = Color(0xFFD4A847)  // warm muted gold
+val PremiumGoldDim = Color(0xFF261E0A) // very dark warm brown
 
 // ─── Status ──────────────────────────────────────────────────────
 val StatusActive = Color(0xFF34A853)

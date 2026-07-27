@@ -1,13 +1,13 @@
 package com.example.silencio.service
 
-
 import android.app.NotificationManager
+import android.app.RemoteInput
+import android.content.ComponentName
 import android.content.Intent
 import android.os.Bundle
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
-import android.app.RemoteInput
 import com.example.silencio.data.prefs.SilencioPrefs
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -26,10 +26,28 @@ class SilencioNotificationListener : NotificationListenerService() {
     private val repliedConversations = mutableSetOf<String>()
 
     companion object {
-        private const val WHATSAPP_PACKAGE = "com.whatsapp"
-        private const val WHATSAPP_BUSINESS_PACKAGE = "com.whatsapp.w4b"
+        const val WHATSAPP_PACKAGE = "com.whatsapp"
+        const val WHATSAPP_BUSINESS_PACKAGE = "com.whatsapp.w4b"
         val WHATSAPP_PACKAGES = setOf(WHATSAPP_PACKAGE, WHATSAPP_BUSINESS_PACKAGE)
         const val TAG = "NotificationListener"
+
+        private val PROMO_KEYWORDS = setOf(
+            "otp", "offer", "deal", "discount", "expires", "% off",
+            "order", "delivered", "delivery", "shipped", "out for delivery",
+            "payment", "invoice", "receipt", "transaction", "credited",
+            "debited", "cashback", "coupon", "code", "verify", "verification",
+            "alert", "reminder", "subscription", "bill", "due", "recharge"
+        )
+
+    }
+
+    override fun onListenerConnected() {
+        Log.d(TAG, "Notification listener connected")
+    }
+
+    override fun onListenerDisconnected() {
+        Log.d(TAG, "Notification listener disconnected — requesting rebind")
+        requestRebind(ComponentName(this, SilencioNotificationListener::class.java))
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
@@ -38,31 +56,98 @@ class SilencioNotificationListener : NotificationListenerService() {
         scope.launch {
             val activeEventId = prefs.activeEventId.first()
             if (activeEventId == null) {
-                repliedConversations.clear() // clear when no meeting active
+                repliedConversations.clear()
                 return@launch
             }
-            // only auto-reply if DND is actually active
+
+            // only process if DND is actually active
             val nm = getSystemService(NotificationManager::class.java)
             val isDndActive =
                 nm.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL
             if (!isDndActive) return@launch
 
+            // filter out bots and promo messages
+            if (!isRealPerson(sbn)) return@launch
+
             prefs.incrementNotificationsHeld()
+            Log.d(TAG, "Real notification held from ${sbn.packageName}")
 
             val isPremium = prefs.isPremium.first()
             if (isPremium && sbn.packageName in WHATSAPP_PACKAGES) {
+                if (isGroupMessage(sbn)) {
+                    Log.d(TAG, "Skipping group message")
+                    return@launch
+                }
+
+                // primary filter — only reply to selected contacts
+                val selectedContacts = prefs.replyContactNames.first()
+                val senderName = extractSenderName(sbn) ?: return@launch
+
+                if (selectedContacts.isNotEmpty() && senderName !in selectedContacts) {
+                    Log.d(TAG, "Skipping — $senderName not in selected contacts")
+                    return@launch
+                }
+
                 val conversationKey = "${sbn.packageName}_${sbn.tag}_${sbn.id}"
                 if (conversationKey !in repliedConversations) {
                     repliedConversations.add(conversationKey)
-                    replyToWhatsApp(sbn)
+                    val replyMessage = prefs.customReplyMessage.first()
+                        .ifEmpty { "I'm in a meeting right now. I'll get back to you soon." }
+                    replyToWhatsApp(sbn, replyMessage)
                 } else {
-                    Log.d(TAG, "Already replied to conversation $conversationKey — skipping")
+                    Log.d(TAG, "Already replied to $conversationKey — skipping")
                 }
             }
         }
     }
 
-    private fun replyToWhatsApp(sbn: StatusBarNotification) {
+    private fun isRealPerson(sbn: StatusBarNotification): Boolean {
+        val notification = sbn.notification ?: return false
+
+        // Rule 1 — no reply action means not a real conversation
+        val actions = notification.actions ?: return false
+        val hasReplyAction = actions.any { it.remoteInputs?.isNotEmpty() == true }
+        if (!hasReplyAction) {
+            Log.d(TAG, "Skipping — no reply action")
+            return false
+        }
+
+
+        val extras = notification.extras
+        val messageText = extras?.getCharSequence("android.text")
+            ?.toString()?.lowercase() ?: ""
+        val titleText = extras?.getCharSequence("android.title")
+            ?.toString() ?: ""
+
+        // Rule 2 — promo/OTP keywords in message body
+        if (PROMO_KEYWORDS.any { messageText.contains(it) }) {
+            Log.d(TAG, "Skipping — promo keywords in message: $titleText")
+            return false
+        }
+        // skip outgoing messages — WhatsApp labels them as "You"
+        val selfName = extras?.getString("android.selfDisplayName")
+        if (titleText == "You" || (selfName != null && titleText == selfName)) {
+            Log.d(TAG, "Skipping — outgoing message")
+            return false
+        }
+
+        return true
+    }
+
+    private fun isGroupMessage(sbn: StatusBarNotification): Boolean {
+        val extras = sbn.notification?.extras ?: return false
+        // group messages have android.subText set to the group name
+        val subText = extras.getCharSequence("android.subText")?.toString()
+        return subText != null
+    }
+
+    fun extractSenderName(sbn: StatusBarNotification): String? {
+        val extras = sbn.notification?.extras ?: return null
+        // only read title (sender name), never message body for privacy
+        return extras.getCharSequence("android.title")?.toString()
+    }
+
+    private fun replyToWhatsApp(sbn: StatusBarNotification, replyMessage: String) {
         val actions = sbn.notification?.actions
         Log.d(TAG, "WhatsApp notification — actions count: ${actions?.size ?: 0}")
         actions?.forEachIndexed { index, action ->
@@ -81,8 +166,6 @@ class SilencioNotificationListener : NotificationListenerService() {
             Log.d(TAG, "No remote input found")
             return
         }
-
-        val replyMessage = "I'm in a meeting right now. I'll get back to you soon."
 
         val sendIntent = Intent()
         val bundle = Bundle()

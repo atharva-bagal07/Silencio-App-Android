@@ -1,6 +1,8 @@
 package com.example.silencio.alarm
 
+import android.Manifest
 import android.annotation.SuppressLint
+import android.app.NotificationChannel
 import android.app.Service
 import android.content.Intent
 import android.database.ContentObserver
@@ -12,7 +14,10 @@ import android.provider.CalendarContract
 import android.util.Log
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.example.silencio.R
 import com.example.silencio.data.repository.SilencioRepository
 import dagger.hilt.android.AndroidEntryPoint
@@ -49,10 +54,10 @@ class CalendarObserverService : Service() {
     override fun onCreate() {
         super.onCreate()
 
-        val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(
+        val hasPermission = ContextCompat.checkSelfPermission(
             this,
-            android.Manifest.permission.READ_CALENDAR
-        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            Manifest.permission.READ_CALENDAR
+        ) == PackageManager.PERMISSION_GRANTED
 
         if (!hasPermission) {
             stopSelf()
@@ -84,8 +89,8 @@ class CalendarObserverService : Service() {
             PendingIntent.FLAG_IMMUTABLE
         )
 
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            val channel = android.app.NotificationChannel(
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
                 channelId,
                 "Silencio",
                 NotificationManager.IMPORTANCE_MIN

@@ -33,7 +33,7 @@ class MeetingEndReceiver : BroadcastReceiver() {
 
         disableDnd(context)
         dismissOngoingNotification(context)
-        context.startService(Intent(context, CalendarObserverService::class.java))
+        context.startForegroundService(Intent(context, CalendarObserverService::class.java))
 
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {

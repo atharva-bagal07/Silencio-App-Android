@@ -1,5 +1,6 @@
 package com.example.silencio.ui.home
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.silencio.data.model.CalendarEvent
@@ -9,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -16,11 +18,13 @@ import javax.inject.Inject
 data class HomeUiState(
     val currentEvent: CalendarEvent? = null,
     val nextEvent: CalendarEvent? = null,
+    val upcomingEvents: List<CalendarEvent> = emptyList(),
     val isActive: Boolean = false,
     val silenceStartTime: Long? = null,
     val notificationsHeld: Long = 0L,
     val hasDndPermission: Boolean = false,
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val dndEverGranted: Boolean = false,
 )
 
 @HiltViewModel
@@ -28,7 +32,12 @@ class HomeViewModel @Inject constructor(
     private val repository: SilencioRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(HomeUiState())
+    private val _uiState = MutableStateFlow(
+        HomeUiState(
+            hasDndPermission = repository.hasDndPermission(),
+            isLoading = true
+        )
+    )
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     val isOnboarded: StateFlow<Boolean?> = repository.isOnboarded
@@ -37,10 +46,18 @@ class HomeViewModel @Inject constructor(
             started = SharingStarted.Eagerly,
             initialValue = null
         )
+
     init {
-        _uiState.value = _uiState.value.copy(isLoading = true)
-        observeSessionState()
-        refreshEvents()
+        viewModelScope.launch {
+            val everGranted = repository.dndPermissionGranted.first()
+            _uiState.value = _uiState.value.copy(
+                hasDndPermission = repository.hasDndPermission() || everGranted,
+                dndEverGranted = everGranted,
+                isLoading = true
+            )
+            observeSessionState()
+            refreshEvents()
+        }
     }
 
     private fun observeSessionState() {
@@ -75,28 +92,41 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun refreshEvents() {
+        val hasDndPermission = repository.hasDndPermission()
+
         viewModelScope.launch {
+            if (hasDndPermission) {
+                repository.setDndPermissionGranted(true)
+            }
+
+            val everGranted = repository.dndPermissionGranted.first()
+
+            _uiState.value = _uiState.value.copy(
+                hasDndPermission = hasDndPermission || everGranted,
+                dndEverGranted = everGranted || hasDndPermission
+            )
+
             val currentEvent = repository.getCurrentEvent()
             val nextEvent = repository.getNextEvent()
-            val hasDndPermission = repository.hasDndPermission()
+            val upcoming = repository.getUpcomingMeetings()
+                .filter { it.startTime > System.currentTimeMillis() }
+                .take(3)
 
             _uiState.value = _uiState.value.copy(
                 currentEvent = currentEvent,
                 nextEvent = nextEvent,
-                hasDndPermission = hasDndPermission,
+                upcomingEvents = upcoming,
                 isLoading = false
             )
         }
     }
 
-    fun onDndPermissionGranted() {
-        viewModelScope.launch {
-            repository.getUpcomingMeetings()
-        }
-        refreshEvents()
-    }
-
     fun onResume() {
+        Log.d("HomeViewModel", "onResume called")
+        _uiState.value = _uiState.value.copy(isLoading = true)
+        _uiState.value = _uiState.value.copy(
+            hasDndPermission = repository.hasDndPermission()
+        )
         refreshEvents()
     }
 }

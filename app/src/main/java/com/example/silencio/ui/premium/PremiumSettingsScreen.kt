@@ -1,0 +1,402 @@
+package com.example.silencio.ui.premium
+
+
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.example.silencio.ui.theme.Background
+import com.example.silencio.ui.theme.Surface
+import com.example.silencio.ui.theme.TextMuted
+import com.example.silencio.ui.theme.TextPrimary
+import com.example.silencio.ui.theme.PremiumGold
+import com.example.silencio.ui.theme.PremiumGoldDim
+import com.example.silencio.ui.theme.StatusActive
+import android.provider.Settings
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+
+@Composable
+fun PremiumSettingsScreen(
+    viewModel: PremiumViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    var contactsExpanded by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var isNotificationAccessGranted by remember {
+        mutableStateOf(
+            Settings.Secure.getString(
+                context.contentResolver,
+                "enabled_notification_listeners"
+            )?.contains(context.packageName) == true
+        )
+    }
+    val focusManager = LocalFocusManager.current
+    var replyMessage by remember(uiState.customReplyMessage) {
+        mutableStateOf(uiState.customReplyMessage)
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                val enabledListeners = Settings.Secure.getString(
+                    context.contentResolver,
+                    "enabled_notification_listeners"
+                )
+                isNotificationAccessGranted =
+                    enabledListeners?.contains(context.packageName) == true
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    val contactsPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) viewModel.loadContacts()
+    }
+
+    LaunchedEffect(Unit) {
+        val granted = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.READ_CONTACTS
+        ) == PackageManager.PERMISSION_GRANTED
+        if (granted) viewModel.loadContacts()
+        else contactsPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Background)
+            .padding(horizontal = 24.dp)
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = { focusManager.clearFocus() })
+            }
+    ) {
+        Text(
+            text = "Premium",
+            style = MaterialTheme.typography.headlineSmall,
+            color = TextPrimary,
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(top = 48.dp, bottom = 8.dp)
+        )
+
+        Text(
+            text = "Silencio Premium is active",
+            style = MaterialTheme.typography.bodyMedium,
+            color = PremiumGold
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(PremiumGoldDim)
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = "We only read sender names from\nnotifications. Messages are never read.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = PremiumGold,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Notification access section
+        Text(
+            text = "NOTIFICATION ACCESS",
+            style = MaterialTheme.typography.labelSmall,
+            color = TextMuted,
+            letterSpacing = 1.5.sp
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(Surface)
+                .clickable {
+                    context.startActivity(
+                        Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                }
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "WhatsApp auto-reply",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextPrimary,
+                    fontSize = 16.sp
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = if (isNotificationAccessGranted) "Access granted" else "Tap to enable",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (isNotificationAccessGranted) StatusActive else TextMuted
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = TextMuted
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Auto-reply message
+        Text(
+            text = "AUTO-REPLY MESSAGE (TAP TO EDIT)",
+            style = MaterialTheme.typography.labelSmall,
+            color = TextMuted,
+            letterSpacing = 1.5.sp
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+
+        OutlinedTextField(
+            value = replyMessage,
+            onValueChange = { replyMessage = it },
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged { focusState ->
+                    if (!focusState.isFocused) {
+                        replyMessage = uiState.customReplyMessage
+                    }
+                },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = PremiumGold,
+                unfocusedBorderColor = Surface,
+                focusedTextColor = TextPrimary,
+                unfocusedTextColor = TextPrimary,
+                cursorColor = PremiumGold,
+                focusedContainerColor = Surface,
+                unfocusedContainerColor = Surface
+            ),
+            shape = RoundedCornerShape(12.dp),
+            textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    viewModel.setCustomReplyMessage(replyMessage)
+                    focusManager.clearFocus()
+                }
+            ),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Box(modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Background)
+                    .padding(bottom = 80.dp)
+            ) {
+                Text(
+                    text = "CHOOSE CONTACTS FOR AUTO-REPLY",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextMuted,
+                    letterSpacing = 1.5.sp
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Surface)
+                        .clickable {
+                            if (contactsExpanded) viewModel.resetPendingContacts()
+                            contactsExpanded = !contactsExpanded
+                        }
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${uiState.selectedReplyContactNames.size} selected",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextPrimary,
+                        fontSize = 16.sp
+                    )
+                    val arrowRotation by animateFloatAsState(
+                        targetValue = if (contactsExpanded) 180f else 0f,
+                        animationSpec = tween(300),
+                        label = "arrow"
+                    )
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = TextMuted,
+                        modifier = Modifier.rotate(arrowRotation)
+                    )
+                }
+
+                AnimatedVisibility(
+                    visible = contactsExpanded,
+                    enter = fadeIn(animationSpec = tween(200)),
+                    exit = fadeOut(animationSpec = tween(200))
+                ) {
+                    Column {
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        if (uiState.isLoadingContacts) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    color = PremiumGold,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(300.dp),
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                items(
+                                    items = uiState.replyContacts,
+                                    key = { it.id }
+                                ) { contact ->
+                                    ReplyContactRow(
+                                        contact = contact,
+                                        isSelected = contact.name in uiState.selectedReplyContactNames,
+                                        onToggle = { viewModel.toggleContact(contact.name) }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            val buttonAlpha by animateFloatAsState(
+                targetValue = if (contactsExpanded) 1f else 0f,
+                animationSpec = tween(200),
+                label = "button_alpha"
+            )
+
+            if (contactsExpanded || buttonAlpha > 0f) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(bottom = 24.dp)
+                        .alpha(buttonAlpha)
+                ) {
+                    Button(
+                        onClick = {
+                            viewModel.saveReplyContacts()
+                            contactsExpanded = false
+                        },
+                        enabled = uiState.selectedReplyContactNames.isNotEmpty(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PremiumGold,
+                            disabledContainerColor = PremiumGold.copy(alpha = 0.3f)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = "Save contacts",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = Color(0xFF1A1400),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

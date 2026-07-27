@@ -4,6 +4,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
+import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -22,9 +23,10 @@ class DndManager @Inject constructor(
      * This must be true before any silence/restore call.
      */
     fun hasDndPermission(): Boolean {
-        return notificationManager.isNotificationPolicyAccessGranted
+        val granted = notificationManager.isNotificationPolicyAccessGranted
+        Log.d("DndManager", "hasDndPermission=$granted")
+        return granted
     }
-
     /**
      * Opens the system settings screen where the user
      * can grant DND permission to Silencio.

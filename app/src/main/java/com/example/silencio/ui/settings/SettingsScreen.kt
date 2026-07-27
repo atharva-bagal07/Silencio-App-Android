@@ -1,6 +1,7 @@
 package com.example.silencio.ui.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -26,8 +27,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -39,9 +40,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.silencio.ui.theme.PremiumGold
+import com.example.silencio.ui.theme.PremiumGoldDim
 import com.example.silencio.ui.theme.Background
 import com.example.silencio.ui.theme.Divider
 import com.example.silencio.ui.theme.StatusActive
@@ -52,12 +57,16 @@ import com.example.silencio.ui.theme.TextPrimary
 import com.example.silencio.ui.theme.TextSecondary
 
 
+
+
 @Composable
 fun SettingsScreen(
-    viewModel: SettingsViewModel = hiltViewModel()
+    viewModel: SettingsViewModel = hiltViewModel(),
+    onUpgrade: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showCalendarPicker by remember { mutableStateOf(false) }
+    var showPaywall by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -88,6 +97,84 @@ fun SettingsScreen(
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
+            // ─── Premium ──────────────────────────────────────────────
+            SectionLabel(text = "PREMIUM")
+
+            if (uiState.isPremium) {
+                // Premium active card
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(PremiumGoldDim)
+                        .border(1.dp, PremiumGold.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = "Silencio Premium",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = PremiumGold,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Active",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = PremiumGold.copy(alpha = 0.7f),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            } else {
+                // Upgrade card
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(PremiumGoldDim)
+                        .border(1.dp, PremiumGold.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = "Silencio Premium",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = PremiumGold,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Auto-reply on WhatsApp. See what you missed",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = { onUpgrade() },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PremiumGold
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = "Upgrade — ₹299/month",
+                            color = Color(0xFF1A1400),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            // ─── Premium Features (only if premium) ───────────────────
+
+
+            Spacer(modifier = Modifier.height(24.dp))
+
             // ─── Calendar ─────────────────────────────────────────────
             SectionLabel(text = "CALENDAR")
 
@@ -108,7 +195,7 @@ fun SettingsScreen(
                 ChevronRow(
                     label = "How Silencio works",
                     subtitle = null,
-                    onClick = { /* open explainer */ }
+                    onClick = { }
                 )
 
                 SettingsDivider()
@@ -116,7 +203,7 @@ fun SettingsScreen(
                 ChevronRow(
                     label = "Privacy",
                     subtitle = null,
-                    onClick = { /* open privacy policy */ }
+                    onClick = { }
                 )
 
                 SettingsDivider()
@@ -131,7 +218,8 @@ fun SettingsScreen(
                     Text(
                         text = "Version",
                         style = MaterialTheme.typography.labelMedium,
-                        color = TextPrimary
+                        color = TextPrimary,
+                        fontSize = 16.sp
                     )
                     Text(
                         text = "1.0.0",
@@ -145,6 +233,7 @@ fun SettingsScreen(
         }
     }
 
+    // Calendar picker sheet
     if (showCalendarPicker) {
         CalendarPickerSheet(
             availableCalendars = uiState.availableCalendars,
@@ -155,6 +244,175 @@ fun SettingsScreen(
                 showCalendarPicker = false
             }
         )
+    }
+
+    // Paywall sheet
+    if (showPaywall) {
+        PaywallSheet(
+            onDismiss = { showPaywall = false },
+            onPurchase = {
+                viewModel.setPremium(true)
+                showPaywall = false
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PaywallSheet(
+    onDismiss: () -> Unit,
+    onPurchase: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = Surface,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Silencio Premium",
+                style = MaterialTheme.typography.titleLarge,
+                color = TextPrimary
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Everything you need to stay focused.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = TextSecondary
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Features list
+            listOf(
+                "Auto-reply to WhatsApp during meetings",
+                "Custom reply message",
+                "See what you missed after every meeting"
+            ).forEach { feature ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "✓", color = PremiumGold, fontSize = 16.sp)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = feature,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = TextPrimary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Button(
+                onClick = onPurchase,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PremiumGold),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = "Get Premium — ₹299/month",
+                    color = Color(0xFF1A1400),
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = "Cancel anytime. Billed monthly.",
+                style = MaterialTheme.typography.bodySmall,
+                color = TextMuted
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CustomReplySheet(
+    current: String,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit
+) {
+    var message by remember { mutableStateOf(current.ifEmpty { "I'm in a meeting. I'll get back to you soon." }) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = Surface,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp)
+        ) {
+            Text(
+                text = "Custom reply message",
+                style = MaterialTheme.typography.titleMedium,
+                color = TextPrimary,
+                fontSize = 20.sp,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            OutlinedTextField(
+                value = message,
+                onValueChange = { if (it.length <= 160) message = it },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 3,
+                maxLines = 5,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = StatusActive,
+                    unfocusedBorderColor = Divider,
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary,
+                    cursorColor = StatusActive
+                )
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "${message.length}/160",
+                style = MaterialTheme.typography.bodySmall,
+                color = TextMuted,
+                modifier = Modifier.align(Alignment.End)
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Button(
+                onClick = { onSave(message) },
+                enabled = message.isNotBlank(),
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = StatusActive,
+                    disabledContainerColor = SurfaceVariant
+                )
+            ) {
+                Text(
+                    text = "Save",
+                    color = if (message.isNotBlank()) TextPrimary else TextSecondary
+                )
+            }
+        }
     }
 }
 
@@ -228,7 +486,6 @@ private fun CalendarPickerSheet(
                 }
             }
 
-            // Sticky button — always visible, never scrolls
             Button(
                 onClick = { onConfirm(selected) },
                 enabled = selected.isNotEmpty(),
@@ -271,40 +528,6 @@ private fun SettingsCard(content: @Composable () -> Unit) {
             .background(Surface)
     ) {
         content()
-    }
-}
-
-@Composable
-private fun ToggleRow(
-    label: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = TextPrimary,
-            modifier = Modifier.weight(1f),
-            fontSize = 17.sp
-        )
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = TextPrimary,
-                checkedTrackColor = StatusActive,
-                uncheckedThumbColor = TextSecondary,
-                uncheckedTrackColor = SurfaceVariant,
-                uncheckedBorderColor = Divider
-            )
-        )
     }
 }
 

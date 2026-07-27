@@ -29,13 +29,25 @@ class SilencioPrefs @Inject constructor(
         val NOTIFICATIONS_HELD_COUNT = longPreferencesKey("notifications_held_count")
         val IS_PREMIUM = booleanPreferencesKey("is_premium")
         val CUSTOM_REPLY_MESSAGE = stringPreferencesKey("custom_reply_message")
+        val REPLY_CONTACT_NAMES = stringPreferencesKey("reply_contact_names")
+        val KEY_DND_PERMISSION_GRANTED = booleanPreferencesKey("dnd_permission_granted")
+
     }
+
+    val replyContactNames: Flow<Set<String>> = context.dataStore.data
+        .map { prefs ->
+            prefs[REPLY_CONTACT_NAMES]
+                ?.split(",")
+                ?.filter { it.isNotBlank() }
+                ?.toSet()
+                ?: emptySet()
+        }
 
     val isOnboarded: Flow<Boolean> = context.dataStore.data
         .map { it[IS_ONBOARDED] ?: false }
 
     val isPremium: Flow<Boolean> = context.dataStore.data
-        .map { it[IS_PREMIUM] ?: true } // true for testing
+        .map { it[IS_PREMIUM] ?: false } // true for testing
 
     val watchedCalendarIds: Flow<Set<Long>> = context.dataStore.data
         .map { prefs ->
@@ -65,8 +77,26 @@ class SilencioPrefs @Inject constructor(
             it[CUSTOM_REPLY_MESSAGE] ?: "I'm in a meeting right now. I'll get back to you soon."
         }
 
+    val dndPermissionGranted: Flow<Boolean> = context.dataStore.data
+        .map { it[KEY_DND_PERMISSION_GRANTED] ?: false }
+
+    suspend fun setDndPermissionGranted(value: Boolean) {
+        context.dataStore.edit { it[KEY_DND_PERMISSION_GRANTED] = value }
+    }
+
     suspend fun setCustomReplyMessage(message: String) {
         context.dataStore.edit { it[CUSTOM_REPLY_MESSAGE] = message }
+    }
+
+
+    suspend fun setReplyContactNames(names: Set<String>) {
+        context.dataStore.edit {
+            it[REPLY_CONTACT_NAMES] = names.joinToString(",")
+        }
+    }
+
+    suspend fun setPremium(value: Boolean) {
+        context.dataStore.edit { it[IS_PREMIUM] = value }
     }
 
     suspend fun setOnboarded(value: Boolean) {

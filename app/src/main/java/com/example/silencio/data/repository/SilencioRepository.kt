@@ -1,11 +1,17 @@
 package com.example.silencio.data.repository
 
+import android.Manifest
 import com.example.silencio.core.calender.CalendarManager
 import com.example.silencio.core.dnd.DndManager
 import com.example.silencio.data.model.CalendarEvent
 import com.example.silencio.data.prefs.SilencioPrefs
 import android.content.Context
+import android.content.pm.PackageManager
+import android.provider.ContactsContract
+import android.util.Log
+import androidx.core.content.ContextCompat
 import com.example.silencio.alarm.AlarmScheduler
+import com.example.silencio.data.model.ReplyContact
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -38,9 +44,25 @@ class SilencioRepository @Inject constructor(
 
     val watchedCalendarIds: Flow<Set<Long>> = prefs.watchedCalendarIds
 
+    val isPremium: Flow<Boolean> = prefs.isPremium
+    val customReplyMessage: Flow<String> = prefs.customReplyMessage
+
+    val replyContactNames: Flow<Set<String>> = prefs.replyContactNames
+
+    val dndPermissionGranted: Flow<Boolean> = prefs.dndPermissionGranted
+
+    suspend fun setDndPermissionGranted(value: Boolean) = prefs.setDndPermissionGranted(value)
+
+    suspend fun setReplyContactNames(names: Set<String>) =
+        prefs.setReplyContactNames(names)
+
+    suspend fun setPremium(value: Boolean) = prefs.setPremium(value)
+    suspend fun setCustomReplyMessage(message: String) = prefs.setCustomReplyMessage(message)
+
 
     suspend fun setOnboarded(value: Boolean) =
         prefs.setOnboarded(value)
+
     suspend fun setWatchedCalendarIds(ids: Set<Long>) =
         prefs.setWatchedCalendarIds(ids)
 
@@ -51,6 +73,50 @@ class SilencioRepository @Inject constructor(
             .filter { it.startTime > now }  // only schedule future events
             .forEach { alarmScheduler.scheduleMeeting(it) }
         return meetings
+    }
+
+    fun getDeviceContacts(): List<ReplyContact> {
+        if (ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.READ_CONTACTS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            Log.d("SilencioRepository", "READ_CONTACTS not granted — skipping")
+            return emptyList()
+        }
+        val contacts = mutableListOf<ReplyContact>()
+        val projection = arrayOf(
+            ContactsContract.CommonDataKinds.Phone.CONTACT_ID,
+            ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+            ContactsContract.CommonDataKinds.Phone.PHOTO_URI
+        )
+        val selection = "${ContactsContract.CommonDataKinds.Phone.NUMBER} IS NOT NULL"
+        context.contentResolver.query(
+            ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+            projection,
+            selection,
+            null,
+            "${ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME} ASC"
+        )?.use { cursor ->
+            val idIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.CONTACT_ID)
+            val nameIndex =
+                cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
+            val photoIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.PHOTO_URI)
+            val seenIds = mutableSetOf<Long>()
+            while (cursor.moveToNext()) {
+                val id = cursor.getLong(idIndex)
+                if (seenIds.contains(id)) continue
+                seenIds.add(id)
+                contacts.add(
+                    ReplyContact(
+                        id = id,
+                        name = cursor.getString(nameIndex) ?: "Unknown",
+                        avatarUri = cursor.getString(photoIndex)
+                    )
+                )
+            }
+        }
+        return contacts
     }
 
     // ─── Session State ───────────────────────────────────────────
