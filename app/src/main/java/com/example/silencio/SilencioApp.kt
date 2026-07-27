@@ -2,8 +2,10 @@ package com.example.silencio
 
 import android.app.Application
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.core.content.ContextCompat
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.example.silencio.alarm.AlarmVerificationJob
@@ -52,10 +54,10 @@ class SilencioApp : Application(), Configuration.Provider {
     private fun scheduleAlarmsIfReady() {
         applicationScope.launch {
             val isOnboarded = prefs.isOnboarded.first()
-            val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(
+            val hasPermission = ContextCompat.checkSelfPermission(
                 this@SilencioApp,
                 android.Manifest.permission.READ_CALENDAR
-            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) == PackageManager.PERMISSION_GRANTED
 
             if (isOnboarded && hasPermission) {
                 repository.getUpcomingMeetings()
