@@ -2,6 +2,8 @@ package com.example.silencio
 
 import android.app.Application
 import android.content.Intent
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.example.silencio.alarm.AlarmVerificationJob
@@ -34,6 +36,7 @@ class SilencioApp : Application(), Configuration.Provider {
             .build()
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate() {
         super.onCreate()
         scheduleAlarmsIfReady()
@@ -45,6 +48,7 @@ class SilencioApp : Application(), Configuration.Provider {
      * onboarding. No point polling calendar if permissions
      * haven't been granted yet.
      */
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun scheduleAlarmsIfReady() {
         applicationScope.launch {
             val isOnboarded = prefs.isOnboarded.first()
@@ -55,7 +59,12 @@ class SilencioApp : Application(), Configuration.Provider {
 
             if (isOnboarded && hasPermission) {
                 repository.getUpcomingMeetings()
-                startService(Intent(this@SilencioApp, CalendarObserverService::class.java))
+                startForegroundService(
+                    Intent(
+                        this@SilencioApp,
+                        CalendarObserverService::class.java
+                    )
+                )
             } else if (isOnboarded && !hasPermission) {
                 prefs.setOnboarded(false)
             }

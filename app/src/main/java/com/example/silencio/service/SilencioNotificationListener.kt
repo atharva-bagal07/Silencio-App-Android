@@ -141,7 +141,7 @@ class SilencioNotificationListener : NotificationListenerService() {
         return subText != null
     }
 
-    fun extractSenderName(sbn: StatusBarNotification): String? {
+    private fun extractSenderName(sbn: StatusBarNotification): String? {
         val extras = sbn.notification?.extras ?: return null
         // only read title (sender name), never message body for privacy
         return extras.getCharSequence("android.title")?.toString()
