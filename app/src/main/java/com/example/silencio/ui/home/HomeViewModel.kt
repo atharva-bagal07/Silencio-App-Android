@@ -1,11 +1,16 @@
 package com.example.silencio.ui.home
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
 import android.util.Log
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.silencio.data.model.CalendarEvent
 import com.example.silencio.data.repository.SilencioRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -25,11 +30,13 @@ data class HomeUiState(
     val hasDndPermission: Boolean = false,
     val isLoading: Boolean = true,
     val dndEverGranted: Boolean = false,
+    val hasCalendarPermission: Boolean = true
 )
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val repository: SilencioRepository
+    private val repository: SilencioRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -93,6 +100,14 @@ class HomeViewModel @Inject constructor(
 
     private fun refreshEvents() {
         val hasDndPermission = repository.hasDndPermission()
+        val hasCalendarPermission = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.READ_CALENDAR
+        ) == PackageManager.PERMISSION_GRANTED
+
+        _uiState.value = _uiState.value.copy(
+            hasCalendarPermission = hasCalendarPermission
+        )
 
         viewModelScope.launch {
             if (hasDndPermission) {

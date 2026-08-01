@@ -67,8 +67,6 @@ class SilencioApp : Application(), Configuration.Provider {
                         CalendarObserverService::class.java
                     )
                 )
-            } else if (isOnboarded && !hasPermission) {
-                prefs.setOnboarded(false)
             }
         }
     }

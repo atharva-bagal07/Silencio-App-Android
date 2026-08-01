@@ -4,6 +4,7 @@ package com.example.silencio.ui.premium
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -70,13 +71,17 @@ import com.example.silencio.ui.theme.PremiumGold
 import com.example.silencio.ui.theme.PremiumGoldDim
 import com.example.silencio.ui.theme.StatusActive
 import android.provider.Settings
+import android.util.Log
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
+import com.example.silencio.ui.theme.TextSecondary
 
 @Composable
 fun PremiumSettingsScreen(
@@ -114,19 +119,105 @@ fun PremiumSettingsScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    val contactsPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) viewModel.loadContacts()
-    }
-
     LaunchedEffect(Unit) {
         val granted = ContextCompat.checkSelfPermission(
             context,
             Manifest.permission.READ_CONTACTS
         ) == PackageManager.PERMISSION_GRANTED
         if (granted) viewModel.loadContacts()
-        else contactsPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
+    }
+
+
+    var showContactsPermissionDialog by remember { mutableStateOf(false) }
+
+    var contactsPermissionDenied by remember { mutableStateOf(false) }
+
+    val contactsPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            viewModel.loadContacts()
+            contactsExpanded = true
+        } else {
+            contactsPermissionDenied = true
+        }
+    }
+
+    if (showContactsPermissionDialog) {
+        AlertDialog(
+            onDismissRequest = { showContactsPermissionDialog = false },
+            containerColor = Surface,
+            title = {
+                Text(
+                    text = if (contactsPermissionDenied) "Permission denied" else "Contacts Access Needed",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = TextPrimary,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = if (contactsPermissionDenied)
+                            "Contact Access Denied. Enable it in app settings to choose who gets auto-replies."
+                        else
+                            "Silencio auto-replies on WhatsApp only to people you choose.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary,
+                        fontSize = 16.sp
+                    )
+                    if (!contactsPermissionDenied) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(PremiumGoldDim)
+                                .padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showContactsPermissionDialog = false
+                        if (contactsPermissionDenied) {
+                            context.startActivity(
+                                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = Uri.fromParts("package", context.packageName, null)
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                            )
+                        } else {
+                            contactsPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
+                        }
+                    }
+                ) {
+                    Text(
+                        text = if (contactsPermissionDenied) "Go to settings" else "Allow contacts",
+                        color = PremiumGold,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showContactsPermissionDialog = false
+                    }
+                ) {
+                    Text(
+                        text = "Skip",
+                        color = TextMuted
+                    )
+                }
+            }
+        )
     }
 
     Column(
@@ -290,8 +381,17 @@ fun PremiumSettingsScreen(
                         .clip(RoundedCornerShape(12.dp))
                         .background(Surface)
                         .clickable {
-                            if (contactsExpanded) viewModel.resetPendingContacts()
-                            contactsExpanded = !contactsExpanded
+                            val granted = ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.READ_CONTACTS
+                            ) == PackageManager.PERMISSION_GRANTED
+
+                            if (!granted) {
+                                showContactsPermissionDialog = true
+                            } else {
+                                if (contactsExpanded) viewModel.resetPendingContacts()
+                                contactsExpanded = !contactsExpanded
+                            }
                         }
                         .padding(horizontal = 16.dp, vertical = 14.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,

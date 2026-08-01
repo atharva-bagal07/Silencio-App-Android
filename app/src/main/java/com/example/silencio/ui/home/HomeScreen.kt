@@ -1,10 +1,15 @@
 package com.example.silencio.ui.home
 
+import android.Manifest
 import android.app.NotificationManager
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.provider.Settings
 import android.text.format.DateFormat
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -58,6 +63,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -82,6 +88,8 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsState()
     val isOnboarded by viewModel.isOnboarded.collectAsState()
 
+
+
     LaunchedEffect(Unit) {
         if (isOnboarded == false) viewModel.completeOnboarding()
     }
@@ -98,6 +106,92 @@ fun HomeScreen(
     }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    var showCalendarSheet by rememberSaveable(uiState.hasCalendarPermission) {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.READ_CALENDAR
+            ) != PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    LaunchedEffect(uiState.hasCalendarPermission) {
+        if (!uiState.hasCalendarPermission) {
+            delay(500)
+            if (!uiState.hasCalendarPermission) {
+                showCalendarSheet = true
+            }
+        }
+    }
+
+    val calendarPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[Manifest.permission.READ_CALENDAR] ?: false
+        if (granted) {
+            showCalendarSheet = false
+            viewModel.onResume()
+        }
+    }
+
+    if (showCalendarSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showCalendarSheet = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = Surface,
+            tonalElevation = 0.dp
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 32.dp)
+                    .padding(bottom = 48.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(text = "⚠️", fontSize = 40.sp)
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "Calendar access required",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = TextPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "Silencio needs calendar access to detect your meetings and silence your phone automatically.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = TextSecondary,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                Button(
+                    onClick = {
+                        calendarPermissionLauncher.launch(
+                            arrayOf(Manifest.permission.READ_CALENDAR)
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = "Grant access",
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+            }
+        }
+    }
+
     var showDndSheet by rememberSaveable(uiState.hasDndPermission) {
         val granted = context.getSystemService(NotificationManager::class.java)
             .isNotificationPolicyAccessGranted

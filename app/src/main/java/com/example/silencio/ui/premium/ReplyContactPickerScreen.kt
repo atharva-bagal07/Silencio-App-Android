@@ -1,9 +1,8 @@
 package com.example.silencio.ui.premium
 
 import android.Manifest
+import android.content.pm.PackageManager
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -39,9 +38,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.silencio.data.model.ReplyContact
 import com.example.silencio.ui.theme.Background
@@ -53,7 +54,6 @@ import com.example.silencio.ui.theme.TextSecondary
 import com.example.silencio.ui.theme.PremiumGold
 import com.example.silencio.ui.theme.PremiumGoldDim
 
-
 @Composable
 fun ReplyContactPickerScreen(
     onDone: () -> Unit,
@@ -62,21 +62,18 @@ fun ReplyContactPickerScreen(
     val uiState by viewModel.uiState.collectAsState()
     var contactsPermissionGranted by remember { mutableStateOf(false) }
 
-    val contactsPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) {
-            contactsPermissionGranted = true
-            viewModel.loadContacts()
-        }
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        val granted = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.READ_CONTACTS
+        ) == PackageManager.PERMISSION_GRANTED
+        if (granted) viewModel.loadContacts()
     }
 
     BackHandler(enabled = uiState.selectedReplyContactNames.isEmpty()) {
         // do nothing — block back until at least one contact is selected
-    }
-
-    LaunchedEffect(Unit) {
-        contactsPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
     }
 
     Box(

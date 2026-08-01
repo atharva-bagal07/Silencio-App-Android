@@ -1,7 +1,6 @@
 package com.example.silencio.ui.navigation
 
 import android.os.Build
-import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
@@ -38,6 +37,7 @@ import com.example.silencio.ui.settings.SettingsScreen
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.silencio.ui.congrats.CongratsScreen
 import com.example.silencio.ui.premium.NotificationAccessScreen
 import com.example.silencio.ui.premium.PaywallScreen
 import com.example.silencio.ui.premium.PremiumSettingsScreen
@@ -57,6 +57,7 @@ sealed class Screen(val route: String) {
     object Paywall : Screen("paywall")
     object ReplyContactPicker : Screen("reply_contact_picker")
     object NotificationAccess : Screen("notification_access")
+    object Congrats : Screen("congrats")
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -126,6 +127,21 @@ fun NavGraph() {
                 MeetingsScreen()
             }
 
+            composable(Screen.Congrats.route) {
+                CongratsScreen(
+                    onContinue = {
+                        navController.navigate(Screen.ReplyContactPicker.route) {
+                            popUpTo(Screen.Congrats.route) { inclusive = true }
+                        }
+                    },
+                    onSkip = {
+                        navController.navigate(Screen.Paywall.route) {
+                            popUpTo(Screen.Congrats.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
             composable(Screen.Paywall.route) {
                 val premiumViewModel: PremiumViewModel = hiltViewModel()
                 val uiState by premiumViewModel.uiState.collectAsState()
@@ -141,7 +157,7 @@ fun NavGraph() {
                 } else {
                     PaywallScreen(
                         onPurchase = {
-                            navController.navigate(Screen.ReplyContactPicker.route) {
+                            navController.navigate(Screen.Congrats.route) {
                                 popUpTo(Screen.Paywall.route) { inclusive = true }
                             }
                         },
