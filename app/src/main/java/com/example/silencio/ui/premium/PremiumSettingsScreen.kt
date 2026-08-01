@@ -76,13 +76,17 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import com.example.silencio.ui.theme.TextSecondary
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PremiumSettingsScreen(
     viewModel: PremiumViewModel = hiltViewModel()
@@ -104,6 +108,9 @@ fun PremiumSettingsScreen(
         mutableStateOf(uiState.customReplyMessage)
     }
 
+    var showReplyContactsSheet by remember { mutableStateOf(false) }
+    val replyContactsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -113,6 +120,20 @@ fun PremiumSettingsScreen(
                 )
                 isNotificationAccessGranted =
                     enabledListeners?.contains(context.packageName) == true
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                val granted = ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.READ_CONTACTS
+                ) == PackageManager.PERMISSION_GRANTED
+                if (granted) viewModel.loadContacts()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -140,6 +161,91 @@ fun PremiumSettingsScreen(
             contactsExpanded = true
         } else {
             contactsPermissionDenied = true
+        }
+    }
+
+    // modal bottom sheet
+    if (showReplyContactsSheet) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                viewModel.resetPendingContacts()
+                showReplyContactsSheet = false
+            },
+            sheetState = replyContactsSheetState,
+            containerColor = Surface,
+            tonalElevation = 0.dp
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 32.dp)
+            ) {
+                Text(
+                    text = "Choose Contacts for Auto-Reply",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = TextPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                if (uiState.isLoadingContacts) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = PremiumGold,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(400.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        items(
+                            items = uiState.replyContacts,
+                            key = { it.id }
+                        ) { contact ->
+                            ReplyContactRow(
+                                contact = contact,
+                                isSelected = contact.name in uiState.selectedReplyContactNames,
+                                onToggle = { viewModel.toggleContact(contact.name) }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = {
+                        viewModel.saveReplyContacts()
+                        showReplyContactsSheet = false
+                    },
+                    enabled = uiState.selectedReplyContactNames.isNotEmpty(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PremiumGold,
+                        disabledContainerColor = PremiumGold.copy(alpha = 0.3f)
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = "Save",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color(0xFF1A1400),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
     }
 
@@ -375,6 +481,7 @@ fun PremiumSettingsScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+                // tappable row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -385,12 +492,10 @@ fun PremiumSettingsScreen(
                                 context,
                                 Manifest.permission.READ_CONTACTS
                             ) == PackageManager.PERMISSION_GRANTED
-
                             if (!granted) {
                                 showContactsPermissionDialog = true
                             } else {
-                                if (contactsExpanded) viewModel.resetPendingContacts()
-                                contactsExpanded = !contactsExpanded
+                                showReplyContactsSheet = true
                             }
                         }
                         .padding(horizontal = 16.dp, vertical = 14.dp),
@@ -403,59 +508,11 @@ fun PremiumSettingsScreen(
                         color = TextPrimary,
                         fontSize = 16.sp
                     )
-                    val arrowRotation by animateFloatAsState(
-                        targetValue = if (contactsExpanded) 180f else 0f,
-                        animationSpec = tween(300),
-                        label = "arrow"
-                    )
                     Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
+                        imageVector = Icons.Default.ChevronRight,
                         contentDescription = null,
-                        tint = TextMuted,
-                        modifier = Modifier.rotate(arrowRotation)
+                        tint = TextMuted
                     )
-                }
-
-                AnimatedVisibility(
-                    visible = contactsExpanded,
-                    enter = fadeIn(animationSpec = tween(200)),
-                    exit = fadeOut(animationSpec = tween(200))
-                ) {
-                    Column {
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        if (uiState.isLoadingContacts) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(200.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator(
-                                    color = PremiumGold,
-                                    modifier = Modifier.size(32.dp)
-                                )
-                            }
-                        } else {
-                            LazyColumn(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(300.dp),
-                                verticalArrangement = Arrangement.spacedBy(2.dp)
-                            ) {
-                                items(
-                                    items = uiState.replyContacts,
-                                    key = { it.id }
-                                ) { contact ->
-                                    ReplyContactRow(
-                                        contact = contact,
-                                        isSelected = contact.name in uiState.selectedReplyContactNames,
-                                        onToggle = { viewModel.toggleContact(contact.name) }
-                                    )
-                                }
-                            }
-                        }
-                    }
                 }
             }
 

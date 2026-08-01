@@ -51,7 +51,13 @@ class MeetingStartReceiver : BroadcastReceiver() {
     private fun enableDnd(context: Context) {
         val nm = context.getSystemService(NotificationManager::class.java)
         if (nm.isNotificationPolicyAccessGranted) {
-            nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_NONE)
+            val policy = NotificationManager.Policy(
+                NotificationManager.Policy.PRIORITY_CATEGORY_CALLS,
+                NotificationManager.Policy.PRIORITY_SENDERS_STARRED,
+                NotificationManager.Policy.PRIORITY_SENDERS_STARRED
+            )
+            nm.notificationPolicy = policy
+            nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_PRIORITY)
             Log.d("AlarmScheduler", "DND enabled")
         } else {
             Log.e("AlarmScheduler", "No DND permission")
