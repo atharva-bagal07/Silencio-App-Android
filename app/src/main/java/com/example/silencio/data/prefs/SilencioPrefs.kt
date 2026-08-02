@@ -29,19 +29,10 @@ class SilencioPrefs @Inject constructor(
         val NOTIFICATIONS_HELD_COUNT = longPreferencesKey("notifications_held_count")
         val IS_PREMIUM = booleanPreferencesKey("is_premium")
         val CUSTOM_REPLY_MESSAGE = stringPreferencesKey("custom_reply_message")
-        val REPLY_CONTACT_NAMES = stringPreferencesKey("reply_contact_names")
         val KEY_DND_PERMISSION_GRANTED = booleanPreferencesKey("dnd_permission_granted")
+        val VIP_CONTACTS = stringPreferencesKey("vip_contacts")
 
     }
-
-    val replyContactNames: Flow<Set<String>> = context.dataStore.data
-        .map { prefs ->
-            prefs[REPLY_CONTACT_NAMES]
-                ?.split(",")
-                ?.filter { it.isNotBlank() }
-                ?.toSet()
-                ?: emptySet()
-        }
 
     val isOnboarded: Flow<Boolean> = context.dataStore.data
         .map { it[IS_ONBOARDED] ?: false }
@@ -80,19 +71,30 @@ class SilencioPrefs @Inject constructor(
     val dndPermissionGranted: Flow<Boolean> = context.dataStore.data
         .map { it[KEY_DND_PERMISSION_GRANTED] ?: false }
 
+    val vipContacts: Flow<Map<Long, String>> = context.dataStore.data
+        .map { prefs ->
+            prefs[VIP_CONTACTS]
+                ?.split(",")
+                ?.filter { it.isNotBlank() }
+                ?.associate { entry ->
+                    val (id, name) = entry.split(":")
+                    id.toLong() to name
+                }
+                ?: emptyMap()
+        }
+
+    suspend fun setVipContacts(contacts: Map<Long, String>) {
+        context.dataStore.edit {
+            it[VIP_CONTACTS] = contacts.entries.joinToString(",") { (id, name) -> "$id:$name" }
+        }
+    }
+
     suspend fun setDndPermissionGranted(value: Boolean) {
         context.dataStore.edit { it[KEY_DND_PERMISSION_GRANTED] = value }
     }
 
     suspend fun setCustomReplyMessage(message: String) {
         context.dataStore.edit { it[CUSTOM_REPLY_MESSAGE] = message }
-    }
-
-
-    suspend fun setReplyContactNames(names: Set<String>) {
-        context.dataStore.edit {
-            it[REPLY_CONTACT_NAMES] = names.joinToString(",")
-        }
     }
 
     suspend fun setPremium(value: Boolean) {

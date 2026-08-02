@@ -4,6 +4,7 @@ import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
@@ -51,14 +52,16 @@ class MeetingEndReceiver : BroadcastReceiver() {
 
     private fun disableDnd(context: Context) {
         val nm = context.getSystemService(NotificationManager::class.java)
+        val audioManager = context.getSystemService(AudioManager::class.java)
+
         if (nm.isNotificationPolicyAccessGranted) {
+            audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
             nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
-            Log.d("AlarmScheduler", "DND disabled")
+            Log.d("AlarmScheduler", "DND disabled — ringerMode=${audioManager.ringerMode}")
         } else {
             Log.e("AlarmScheduler", "No DND permission")
         }
     }
-
     private fun dismissOngoingNotification(context: Context) {
         val nm = context.getSystemService(NotificationManager::class.java)
         nm.cancel(MeetingStartReceiver.NOTIFICATION_ID)

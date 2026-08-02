@@ -45,6 +45,7 @@ class HomeViewModel @Inject constructor(
             isLoading = true
         )
     )
+
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     val isOnboarded: StateFlow<Boolean?> = repository.isOnboarded

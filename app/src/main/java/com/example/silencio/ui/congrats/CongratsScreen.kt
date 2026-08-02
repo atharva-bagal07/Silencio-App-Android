@@ -123,7 +123,7 @@ fun CongratsScreen(onContinue: () -> Unit, onSkip: () -> Unit) {
             text = {
                 Column {
                     Text(
-                        text = "Silencio auto-replies on WhatsApp only to people you choose.",
+                        text = "Silencio only lets your VIP Contacts reach you during meetings.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextSecondary,
                         fontSize = 16.sp

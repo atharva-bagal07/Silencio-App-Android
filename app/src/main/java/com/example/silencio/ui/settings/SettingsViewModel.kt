@@ -45,7 +45,7 @@ class SettingsViewModel @Inject constructor(
                 _availableCalendars,
                 repository.isPremium,
                 repository.customReplyMessage,
-                repository.replyContactNames
+                repository.vipContacts
             ) { args ->
                 val calendarIds = args[0] as Set<Long>
                 val calendars = args[1] as List<Pair<Long, String>>
@@ -76,31 +76,15 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun loadReplyContacts() {
-        viewModelScope.launch {
-            val contacts = repository.getDeviceContacts()
-            _uiState.value = _uiState.value.copy(replyContacts = contacts)
-        }
-    }
 
     fun setPremium(value: Boolean) {
         viewModelScope.launch { repository.setPremium(value) }
-    }
-
-    fun setCustomReplyMessage(message: String) {
-        viewModelScope.launch { repository.setCustomReplyMessage(message) }
     }
 
     fun setWatchedCalendarIds(ids: Set<Long>) {
         viewModelScope.launch {
             Log.d("Settings", "Saving calendar ids: $ids")
             repository.setWatchedCalendarIds(ids)
-        }
-    }
-
-    fun setReplyContactNames(names: Set<String>) {
-        viewModelScope.launch {
-            repository.setReplyContactNames(names)
         }
     }
 }

@@ -4,6 +4,7 @@ package com.example.silencio.ui.premium
 import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -30,6 +31,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.silencio.ui.theme.Background
@@ -102,82 +104,96 @@ fun NotificationAccessScreen(
         )
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Background)
-            .padding(horizontal = 32.dp),
-        verticalArrangement = Arrangement.Center
     ) {
-
-
-        Text(
-            text = "One last thing",
-            style = MaterialTheme.typography.headlineLarge.copy(fontSize = 36.sp),
-            color = TextPrimary,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = "Silencio needs notification access to auto-reply on WhatsApp when you're in a meeting.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = TextSecondary
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(10.dp))
-                .background(PremiumGoldDim)
-                .padding(vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 32.dp)
+                .padding(top = 236.dp)
         ) {
-            Spacer(modifier = Modifier.width(10.dp))
             Text(
-                text = "We only read sender names from\nnotifications. Messages are never read.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = PremiumGold,
+                text = "One last thing",
+                style = MaterialTheme.typography.headlineLarge.copy(fontSize = 36.sp),
+                color = TextPrimary,
                 fontWeight = FontWeight.Bold
             )
-        }
 
-        Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-        Button(
-            onClick = {
-                context.startActivity(
-                    Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            Text(
+                text = "Silencio needs notification access to auto-reply on WhatsApp when you're in a meeting.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = TextSecondary
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(PremiumGoldDim)
+                    .padding(vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "We only read sender names from\nnotifications. Messages are never read.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = PremiumGold,
+                    fontWeight = FontWeight.Bold
                 )
-                onDone()
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = PremiumGold),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Text(
-                text = "Grant access",
-                style = MaterialTheme.typography.labelLarge,
-                color = Color(0xFF1A1400),
-                fontWeight = FontWeight.Bold
-            )
+            }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        TextButton(
-            onClick = onDone,
-            modifier = Modifier.fillMaxWidth()
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(horizontal = 32.dp)
+                .padding(bottom = 48.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "I'll do this later",
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextMuted
-            )
+            Button(
+                onClick = {
+                    context.startActivity(
+                        Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                    onDone()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PremiumGold),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = "Grant access",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color(0xFF1A1400),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            TextButton(
+                onClick = { showConfirmDialog = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "I'll do this later",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextMuted,
+                    fontSize = 18.sp
+                )
+            }
         }
     }
 }

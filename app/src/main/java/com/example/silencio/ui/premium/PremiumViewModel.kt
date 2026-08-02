@@ -17,8 +17,8 @@ data class PremiumUiState(
     val isPremium: Boolean = false,
     val customReplyMessage: String = "",
     val replyContacts: List<ReplyContact> = emptyList(),
-    val selectedReplyContactNames: Set<String> = emptySet(),
-    val isLoadingContacts: Boolean = true
+    val isLoadingContacts: Boolean = true,
+    val selectedVipContacts: Map<Long, String> = emptyMap(),
 )
 
 @HiltViewModel
@@ -28,13 +28,13 @@ class PremiumViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(PremiumUiState(isLoadingContacts = true))
     val uiState: StateFlow<PremiumUiState> = _uiState.asStateFlow()
-    private var contactsInitialized = false
+    private var vipContactsInitialized = false
 
     init {
         viewModelScope.launch {
-            val savedNames = repository.replyContactNames.first()
-            _uiState.value = _uiState.value.copy(selectedReplyContactNames = savedNames)
-            contactsInitialized = true
+            val savedVipContacts = repository.vipContacts.first()
+            _uiState.value = _uiState.value.copy(selectedVipContacts = savedVipContacts)
+            vipContactsInitialized = true
             observePreferences()
         }
     }
@@ -66,25 +66,6 @@ class PremiumViewModel @Inject constructor(
         }
     }
 
-    fun toggleContact(name: String) {
-        val current = _uiState.value.selectedReplyContactNames.toMutableSet()
-        if (current.contains(name)) current.remove(name) else current.add(name)
-        _uiState.value = _uiState.value.copy(selectedReplyContactNames = current)
-    }
-
-    fun saveReplyContacts() {
-        viewModelScope.launch {
-            repository.setReplyContactNames(_uiState.value.selectedReplyContactNames)
-        }
-    }
-
-    fun resetPendingContacts() {
-        viewModelScope.launch {
-            val savedNames = repository.replyContactNames.first()
-            _uiState.value = _uiState.value.copy(selectedReplyContactNames = savedNames)
-        }
-    }
-
     fun setCustomReplyMessage(message: String) {
         viewModelScope.launch {
             repository.setCustomReplyMessage(message)
@@ -95,5 +76,31 @@ class PremiumViewModel @Inject constructor(
         viewModelScope.launch {
             repository.setPremium(value)
         }
+    }
+
+    fun saveVipContacts(onComplete: () -> Unit) {
+        viewModelScope.launch {
+            val savedContacts = repository.vipContacts.first()
+            val newContacts = _uiState.value.selectedVipContacts
+
+            savedContacts.keys.minus(newContacts.keys).forEach { repository.unstarContact(it) }
+            newContacts.keys.minus(savedContacts.keys).forEach { repository.starContact(it) }
+
+            repository.setVipContacts(newContacts)
+            onComplete()
+        }
+    }
+
+    fun resetPendingVipContacts() {
+        viewModelScope.launch {
+            val saved = repository.vipContacts.first()
+            _uiState.value = _uiState.value.copy(selectedVipContacts = saved)
+        }
+    }
+
+    fun toggleVipContact(id: Long, name: String) {
+        val current = _uiState.value.selectedVipContacts.toMutableMap()
+        if (current.containsKey(id)) current.remove(id) else current[id] = name
+        _uiState.value = _uiState.value.copy(selectedVipContacts = current)
     }
 }

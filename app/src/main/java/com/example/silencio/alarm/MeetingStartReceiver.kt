@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
@@ -50,6 +51,8 @@ class MeetingStartReceiver : BroadcastReceiver() {
 
     private fun enableDnd(context: Context) {
         val nm = context.getSystemService(NotificationManager::class.java)
+        val audioManager = context.getSystemService(AudioManager::class.java)
+
         if (nm.isNotificationPolicyAccessGranted) {
             val policy = NotificationManager.Policy(
                 NotificationManager.Policy.PRIORITY_CATEGORY_CALLS,
@@ -58,12 +61,12 @@ class MeetingStartReceiver : BroadcastReceiver() {
             )
             nm.notificationPolicy = policy
             nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_PRIORITY)
-            Log.d("AlarmScheduler", "DND enabled")
+            audioManager.ringerMode = AudioManager.RINGER_MODE_VIBRATE
+            Log.d("AlarmScheduler", "DND enabled — ringerMode=${audioManager.ringerMode}")
         } else {
             Log.e("AlarmScheduler", "No DND permission")
         }
     }
-
     @RequiresApi(Build.VERSION_CODES.O)
     private fun showStartNotification(
         context: Context,

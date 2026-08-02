@@ -80,11 +80,11 @@ class SilencioNotificationListener : NotificationListenerService() {
                 }
 
                 // primary filter — only reply to selected contacts
-                val selectedContacts = prefs.replyContactNames.first()
+                val vipContacts = prefs.vipContacts.first()
+                val vipNames = vipContacts.values.toSet()
                 val senderName = extractSenderName(sbn) ?: return@launch
-
-                if (selectedContacts.isNotEmpty() && senderName !in selectedContacts) {
-                    Log.d(TAG, "Skipping — $senderName not in selected contacts")
+                if (vipNames.isNotEmpty() && senderName !in vipNames) {
+                    Log.d(TAG, "Skipping — $senderName not in VIP contacts")
                     return@launch
                 }
 

@@ -1,6 +1,7 @@
 package com.example.silencio.data.repository
 
 import android.Manifest
+import android.content.ContentValues
 import com.example.silencio.core.calender.CalendarManager
 import com.example.silencio.core.dnd.DndManager
 import com.example.silencio.data.model.CalendarEvent
@@ -47,14 +48,37 @@ class SilencioRepository @Inject constructor(
     val isPremium: Flow<Boolean> = prefs.isPremium
     val customReplyMessage: Flow<String> = prefs.customReplyMessage
 
-    val replyContactNames: Flow<Set<String>> = prefs.replyContactNames
-
     val dndPermissionGranted: Flow<Boolean> = prefs.dndPermissionGranted
+
+    val vipContacts: Flow<Map<Long, String>> = prefs.vipContacts
+    suspend fun setVipContacts(contacts: Map<Long, String>) = prefs.setVipContacts(contacts)
+
+    fun starContact(contactId: Long) {
+        val values = ContentValues().apply {
+            put(ContactsContract.Contacts.STARRED, 1)
+        }
+        context.contentResolver.update(
+            ContactsContract.Contacts.CONTENT_URI,
+            values,
+            "${ContactsContract.Contacts._ID} = ?",
+            arrayOf(contactId.toString())
+        )
+    }
+
+    fun unstarContact(contactId: Long) {
+        val values = ContentValues().apply {
+            put(ContactsContract.Contacts.STARRED, 0)
+        }
+        context.contentResolver.update(
+            ContactsContract.Contacts.CONTENT_URI,
+            values,
+            "${ContactsContract.Contacts._ID} = ?",
+            arrayOf(contactId.toString())
+        )
+    }
 
     suspend fun setDndPermissionGranted(value: Boolean) = prefs.setDndPermissionGranted(value)
 
-    suspend fun setReplyContactNames(names: Set<String>) =
-        prefs.setReplyContactNames(names)
 
     suspend fun setPremium(value: Boolean) = prefs.setPremium(value)
     suspend fun setCustomReplyMessage(message: String) = prefs.setCustomReplyMessage(message)

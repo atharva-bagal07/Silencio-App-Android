@@ -42,20 +42,19 @@ import com.example.silencio.ui.premium.NotificationAccessScreen
 import com.example.silencio.ui.premium.PaywallScreen
 import com.example.silencio.ui.premium.PremiumSettingsScreen
 import com.example.silencio.ui.premium.PremiumViewModel
-import com.example.silencio.ui.premium.ReplyContactPickerScreen
 import com.example.silencio.ui.theme.AccentBlue
 import com.example.silencio.ui.theme.Background
 import com.example.silencio.ui.theme.Surface
 import com.example.silencio.ui.theme.TextMuted
+import com.example.silencio.ui.vipContact.VipContactPickerScreen
 
 sealed class Screen(val route: String) {
     object Onboarding : Screen("onboarding")
-    object VipContact : Screen("vip_contact")
+    object VipContactPicker : Screen("vip_contact_picker")
     object Home : Screen("home")
     object Meetings : Screen("meetings")
     object Settings : Screen("settings")
     object Paywall : Screen("paywall")
-    object ReplyContactPicker : Screen("reply_contact_picker")
     object NotificationAccess : Screen("notification_access")
     object Congrats : Screen("congrats")
 }
@@ -127,10 +126,20 @@ fun NavGraph() {
                 MeetingsScreen()
             }
 
+            composable(Screen.VipContactPicker.route) {
+                VipContactPickerScreen(
+                    onDone = {
+                        navController.navigate(Screen.NotificationAccess.route) {
+                            popUpTo(Screen.VipContactPicker.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
             composable(Screen.Congrats.route) {
                 CongratsScreen(
                     onContinue = {
-                        navController.navigate(Screen.ReplyContactPicker.route) {
+                        navController.navigate(Screen.VipContactPicker.route) {
                             popUpTo(Screen.Congrats.route) { inclusive = true }
                         }
                     },
@@ -179,16 +188,6 @@ fun NavGraph() {
                     onDone = {
                         navController.navigate(Screen.Home.route) {
                             popUpTo(Screen.NotificationAccess.route) { inclusive = true }
-                        }
-                    }
-                )
-            }
-
-            composable(Screen.ReplyContactPicker.route) {
-                ReplyContactPickerScreen(
-                    onDone = {
-                        navController.navigate(Screen.NotificationAccess.route) {
-                            popUpTo(Screen.ReplyContactPicker.route) { inclusive = true }
                         }
                     }
                 )

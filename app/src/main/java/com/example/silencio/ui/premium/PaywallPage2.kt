@@ -51,15 +51,8 @@ fun PaywallPage2(
                 .padding(vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "You've already set up the hard part.",
-                style = MaterialTheme.typography.labelSmall,
-                color = PremiumGold,
-                textAlign = TextAlign.Center,
-                letterSpacing = 1.5.sp
-            )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(54.dp))
 
             Text(
                 text = "One last step to protect everything.",
@@ -69,11 +62,10 @@ fun PaywallPage2(
                 fontWeight = FontWeight.Bold
             )
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(35.dp))
 
             // feature rows — outcome focused
             FeatureRow(
-                emoji = "💬",
                 title = "They get a reply. Automatically.",
                 subtitle = "The moment your meeting starts, Silencio replies on your behalf."
             )
@@ -81,7 +73,6 @@ fun PaywallPage2(
             Spacer(modifier = Modifier.height(20.dp))
 
             FeatureRow(
-                emoji = "✏️",
                 title = "You choose what it says.",
                 subtitle = "Set a custom message. Change it anytime."
             )
@@ -89,12 +80,11 @@ fun PaywallPage2(
             Spacer(modifier = Modifier.height(20.dp))
 
             FeatureRow(
-                emoji = "📋",
                 title = "Catch up the moment it ends.",
                 subtitle = "See everyone who reached out, the second your meeting ends."
             )
         }
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Column(
             modifier = Modifier
@@ -133,7 +123,6 @@ fun PaywallPage2(
 
 @Composable
 private fun FeatureRow(
-    emoji: String,
     title: String,
     subtitle: String
 ) {
@@ -145,12 +134,7 @@ private fun FeatureRow(
             .padding(16.dp),
         verticalAlignment = Alignment.Top
     ) {
-        Text(
-            text = emoji,
-            fontSize = 24.sp
-        )
 
-        Spacer(modifier = Modifier.width(16.dp))
 
         Column {
             Text(

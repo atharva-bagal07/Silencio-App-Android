@@ -7,11 +7,6 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -31,7 +26,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -50,9 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -71,7 +63,6 @@ import com.example.silencio.ui.theme.PremiumGold
 import com.example.silencio.ui.theme.PremiumGoldDim
 import com.example.silencio.ui.theme.StatusActive
 import android.provider.Settings
-import android.util.Log
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -85,6 +76,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import com.example.silencio.ui.theme.TextSecondary
+import com.example.silencio.ui.vipContact.ReplyContactRow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -120,15 +112,7 @@ fun PremiumSettingsScreen(
                 )
                 isNotificationAccessGranted =
                     enabledListeners?.contains(context.packageName) == true
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
 
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
                 val granted = ContextCompat.checkSelfPermission(
                     context,
                     Manifest.permission.READ_CONTACTS
@@ -154,11 +138,12 @@ fun PremiumSettingsScreen(
     var contactsPermissionDenied by remember { mutableStateOf(false) }
 
     val contactsPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) {
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val readGranted = permissions[Manifest.permission.READ_CONTACTS] ?: false
+        if (readGranted) {
             viewModel.loadContacts()
-            contactsExpanded = true
+            showReplyContactsSheet = true
         } else {
             contactsPermissionDenied = true
         }
@@ -168,7 +153,7 @@ fun PremiumSettingsScreen(
     if (showReplyContactsSheet) {
         ModalBottomSheet(
             onDismissRequest = {
-                viewModel.resetPendingContacts()
+                viewModel.resetPendingVipContacts()
                 showReplyContactsSheet = false
             },
             sheetState = replyContactsSheetState,
@@ -182,7 +167,7 @@ fun PremiumSettingsScreen(
                     .padding(bottom = 32.dp)
             ) {
                 Text(
-                    text = "Choose Contacts for Auto-Reply",
+                    text = "Choose your VIP Contacts",
                     style = MaterialTheme.typography.titleMedium,
                     color = TextPrimary,
                     fontWeight = FontWeight.Bold
@@ -214,8 +199,8 @@ fun PremiumSettingsScreen(
                         ) { contact ->
                             ReplyContactRow(
                                 contact = contact,
-                                isSelected = contact.name in uiState.selectedReplyContactNames,
-                                onToggle = { viewModel.toggleContact(contact.name) }
+                                isSelected = contact.id in uiState.selectedVipContacts,
+                                onToggle = { viewModel.toggleVipContact(contact.id, contact.name) }
                             )
                         }
                     }
@@ -225,10 +210,10 @@ fun PremiumSettingsScreen(
 
                 Button(
                     onClick = {
-                        viewModel.saveReplyContacts()
+                        viewModel.saveVipContacts { showReplyContactsSheet = false }
                         showReplyContactsSheet = false
                     },
-                    enabled = uiState.selectedReplyContactNames.isNotEmpty(),
+                    enabled = uiState.selectedVipContacts.isNotEmpty(),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
@@ -266,9 +251,9 @@ fun PremiumSettingsScreen(
                 Column {
                     Text(
                         text = if (contactsPermissionDenied)
-                            "Contact Access Denied. Enable it in app settings to choose who gets auto-replies."
+                            "Contact Access Denied. Enable it in app settings to choose your VIP Contacts."
                         else
-                            "Silencio auto-replies on WhatsApp only to people you choose.",
+                            "Silencio only lets your VIP Contacts reach you during meetings.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextSecondary,
                         fontSize = 16.sp
@@ -300,7 +285,12 @@ fun PremiumSettingsScreen(
                                 }
                             )
                         } else {
-                            contactsPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
+                            contactsPermissionLauncher.launch(
+                                arrayOf(
+                                    Manifest.permission.READ_CONTACTS,
+                                    Manifest.permission.WRITE_CONTACTS
+                                )
+                            )
                         }
                     }
                 ) {
@@ -473,7 +463,7 @@ fun PremiumSettingsScreen(
                     .padding(bottom = 80.dp)
             ) {
                 Text(
-                    text = "CHOOSE CONTACTS FOR AUTO-REPLY",
+                    text = "CHOOSE YOUR VIP CONTACTS",
                     style = MaterialTheme.typography.labelSmall,
                     color = TextMuted,
                     letterSpacing = 1.5.sp
@@ -488,11 +478,14 @@ fun PremiumSettingsScreen(
                         .clip(RoundedCornerShape(12.dp))
                         .background(Surface)
                         .clickable {
-                            val granted = ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.READ_CONTACTS
+                            val readGranted = ContextCompat.checkSelfPermission(
+                                context, Manifest.permission.READ_CONTACTS
                             ) == PackageManager.PERMISSION_GRANTED
-                            if (!granted) {
+                            val writeGranted = ContextCompat.checkSelfPermission(
+                                context, Manifest.permission.WRITE_CONTACTS
+                            ) == PackageManager.PERMISSION_GRANTED
+
+                            if (!readGranted || !writeGranted) {
                                 showContactsPermissionDialog = true
                             } else {
                                 showReplyContactsSheet = true
@@ -503,7 +496,7 @@ fun PremiumSettingsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "${uiState.selectedReplyContactNames.size} selected",
+                        text = "${uiState.selectedVipContacts.size} selected",
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextPrimary,
                         fontSize = 16.sp
@@ -516,26 +509,21 @@ fun PremiumSettingsScreen(
                 }
             }
 
-            val buttonAlpha by animateFloatAsState(
-                targetValue = if (contactsExpanded) 1f else 0f,
-                animationSpec = tween(200),
-                label = "button_alpha"
-            )
 
-            if (contactsExpanded || buttonAlpha > 0f) {
+
+            if (contactsExpanded) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
                         .padding(bottom = 24.dp)
-                        .alpha(buttonAlpha)
                 ) {
                     Button(
                         onClick = {
-                            viewModel.saveReplyContacts()
+                            viewModel.saveVipContacts { }
                             contactsExpanded = false
                         },
-                        enabled = uiState.selectedReplyContactNames.isNotEmpty(),
+                        enabled = uiState.selectedVipContacts.isNotEmpty(),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp),
