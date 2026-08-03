@@ -25,8 +25,8 @@ class SilencioNotificationListener : NotificationListenerService() {
     private val scope = CoroutineScope(Dispatchers.IO)
 
     companion object {
-        const val WHATSAPP_PACKAGE = "com.whatsapp"
-        const val WHATSAPP_BUSINESS_PACKAGE = "com.whatsapp.w4b"
+        private const val WHATSAPP_PACKAGE = "com.whatsapp"
+        private const val WHATSAPP_BUSINESS_PACKAGE = "com.whatsapp.w4b"
         val WHATSAPP_PACKAGES = setOf(WHATSAPP_PACKAGE, WHATSAPP_BUSINESS_PACKAGE)
         const val TAG = "NotificationListener"
 
