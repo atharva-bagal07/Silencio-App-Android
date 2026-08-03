@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.silencio.app"
+    namespace = "io.silencio.app"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.silencio.app"
+        applicationId = "io.silencio.app"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
