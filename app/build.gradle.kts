@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.silencio"
+    namespace = "com.silencio.app"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.silencio"
+        applicationId = "com.silencio.app"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
@@ -85,7 +85,6 @@ dependencies {
     implementation("androidx.datastore:datastore-core-android:1.2.1")
     kapt("com.google.dagger:hilt-android-compiler:2.48.1")
     implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
-    implementation("androidx.hilt:hilt-work:1.2.0")
     kapt("androidx.hilt:hilt-compiler:1.2.0")
 
     // Splash Screen
