@@ -20,7 +20,7 @@ data class SettingsUiState(
     val isPremium: Boolean = false,
     val customReplyMessage: String = "",
     val replyContacts: List<ReplyContact> = emptyList(),
-    val selectedReplyContactNames: Set<String> = emptySet()
+    val selectedReplyContacts: Map<Long, String> = emptyMap()
 )
 
 @HiltViewModel
@@ -51,7 +51,7 @@ class SettingsViewModel @Inject constructor(
                 val calendars = args[1] as List<Pair<Long, String>>
                 val premium = args[2] as Boolean
                 val replyMessage = args[3] as String
-                val replyContactNames = args[4] as Set<String>
+                val replyContacts = args[4] as Map<Long, String>
 
                 SettingsUiState(
                     watchedCalendarIds = calendarIds,
@@ -62,7 +62,7 @@ class SettingsViewModel @Inject constructor(
                     availableCalendars = calendars,
                     isPremium = premium,
                     customReplyMessage = replyMessage,
-                    selectedReplyContactNames = replyContactNames
+                    selectedReplyContacts = replyContacts
                 )
             }.collect { state ->
                 _uiState.value = state

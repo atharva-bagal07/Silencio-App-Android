@@ -93,7 +93,7 @@ fun PaywallPage3(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "$4.99",
+                    text = "$3.49",
                     style = MaterialTheme.typography.headlineLarge.copy(fontSize = 48.sp),
                     color = PremiumGold,
                     fontWeight = FontWeight.Bold

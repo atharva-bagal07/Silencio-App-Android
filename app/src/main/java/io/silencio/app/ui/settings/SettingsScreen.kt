@@ -326,7 +326,7 @@ private fun PaywallSheet(
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
-                    text = "Get Premium — ₹299/month",
+                    text = "Get Premium — $3.49/month",
                     color = Color(0xFF1A1400),
                     style = MaterialTheme.typography.labelLarge
                 )
