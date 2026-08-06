@@ -161,7 +161,7 @@ fun SettingsScreen(
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
-                            text = "Upgrade — ₹299/month",
+                            text = "Upgrade - $3.49 lifetime",
                             color = Color(0xFF1A1400),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold
