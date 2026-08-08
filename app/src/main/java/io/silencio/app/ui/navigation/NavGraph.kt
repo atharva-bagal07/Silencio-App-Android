@@ -137,13 +137,16 @@ fun NavGraph() {
             }
 
             composable(Screen.Congrats.route) {
+                val premiumViewModel: PremiumViewModel = hiltViewModel()
                 CongratsScreen(
                     onContinue = {
+                        premiumViewModel.setPremium(true)
                         navController.navigate(Screen.VipContactPicker.route) {
                             popUpTo(Screen.Congrats.route) { inclusive = true }
                         }
                     },
                     onSkip = {
+                        premiumViewModel.setPremium(true)
                         navController.navigate(Screen.Paywall.route) {
                             popUpTo(Screen.Congrats.route) { inclusive = true }
                         }
@@ -184,8 +187,10 @@ fun NavGraph() {
             }
 
             composable(Screen.NotificationAccess.route) {
+                val premiumViewModel: PremiumViewModel = hiltViewModel()
                 NotificationAccessScreen(
                     onDone = {
+                        premiumViewModel.setPremium(true)
                         navController.navigate(Screen.Home.route) {
                             popUpTo(Screen.NotificationAccess.route) { inclusive = true }
                         }

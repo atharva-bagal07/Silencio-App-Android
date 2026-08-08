@@ -6,6 +6,9 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
+import com.revenuecat.purchases.LogLevel
+import com.revenuecat.purchases.Purchases
+import com.revenuecat.purchases.PurchasesConfiguration
 import io.silencio.app.alarm.AlarmVerificationJob
 import io.silencio.app.alarm.CalendarObserverService
 import io.silencio.app.data.prefs.SilencioPrefs
@@ -31,6 +34,20 @@ class SilencioApp : Application() {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate() {
         super.onCreate()
+        // TEMPORARY — remove before release
+        applicationScope.launch {
+            prefs.setPremium(false)
+        }
+
+        // RevenueCat init
+        Purchases.logLevel = LogLevel.DEBUG
+        Purchases.configure(
+            PurchasesConfiguration.Builder(
+                context = this,
+                apiKey = BuildConfig.REVENUECAT_API_KEY
+            ).build()
+        )
+
         scheduleAlarmsIfReady()
         AlarmVerificationJob.schedule(this)
     }
@@ -56,4 +73,3 @@ class SilencioApp : Application() {
         }
     }
 }
-

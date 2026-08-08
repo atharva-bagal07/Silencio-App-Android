@@ -1,5 +1,6 @@
 package io.silencio.app.ui.premium
 
+import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -11,10 +12,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -22,6 +25,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,10 +34,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.silencio.app.ui.theme.Background
 import io.silencio.app.ui.theme.Surface
 import io.silencio.app.ui.theme.TextMuted
@@ -44,9 +52,19 @@ private val PremiumGold = Color(0xFFD4A847)
 @Composable
 fun PaywallPage3(
     onPurchase: () -> Unit,
-    onSkip: () -> Unit
+    onSkip: () -> Unit,
+    viewModel: PremiumViewModel = hiltViewModel()
 ) {
     var showExitSheet by remember { mutableStateOf(false) }
+    val purchaseState by viewModel.purchaseState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    // Navigate on successful purchase
+    LaunchedEffect(purchaseState) {
+        if (purchaseState is PurchaseState.Success) {
+            onPurchase()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -140,22 +158,41 @@ fun PaywallPage3(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Button(
-                onClick = onPurchase,
+                onClick = {
+                    viewModel.purchasePremium(context as Activity)
+                },
+                enabled = purchaseState !is PurchaseState.Loading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = PremiumGold),
                 shape = RoundedCornerShape(12.dp)
             ) {
+                if (purchaseState is PurchaseState.Loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        color = Color(0xFF1A1400),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        text = "Get Silencio Premium",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color(0xFF1A1400),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            TextButton(onClick = { viewModel.restorePurchases() }) {
                 Text(
-                    text = "Get Silencio Premium",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Color(0xFF1A1400),
-                    fontWeight = FontWeight.Bold
+                    text = "Restore Purchase",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextMuted
                 )
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             TextButton(onClick = { showExitSheet = true }) {
                 Text(
@@ -179,7 +216,7 @@ fun PaywallPage3(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ExitIntentSheet(
+fun ExitIntentSheet(
     onStay: () -> Unit,
     onLeave: () -> Unit
 ) {

@@ -89,7 +89,6 @@ fun PaywallScreen(
 
                 2 -> PaywallPage3(
                     onPurchase = {
-                        viewModel.setPremium(true)
                         onPurchase()
                     },
                     onSkip = onSkip
